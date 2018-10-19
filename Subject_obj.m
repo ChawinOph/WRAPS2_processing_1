@@ -88,31 +88,6 @@ classdef Subject_obj < handle
             
         end
         
-        function [var, var_indice] = extractMarkers(this, marker_names, raw_headernames, M)
-            % select only the positions of markers in the list
-            var_indice = [];
-            for i = 1:length(marker_names)
-                for j = 1:size(raw_headernames, 2)
-                    if strcmp(raw_headernames{j}, [this.sbj_name, ':', marker_names{i}])
-                        var_indice = [var_indice, j]; %#ok<AGROW>
-                    end
-                end
-            end
-            var = [];
-            for i = 1:length(var_indice)
-                var = [var, M(:, 3*(var_indice(i)-1) + 1 : 3*(var_indice(i)-1) + 3)]; %#ok<AGROW>
-            end
-        end
-        
-        function markerdata = sortMarker(~, data, n_markers)
-            [rows, ~] = size(data);
-            markerdata = zeros(rows,3, n_markers);          
-            %sort by marker
-            for n = 0: n_markers - 1
-                markerdata(:,:, n+1) = data(:, 3*n + 1 : 3*n + 3);
-            end
-        end
-        
         function trial_fplate_data = ImportForcePlateData_csv(this, trial_no, trial_file_names, sorted_forceplate_names, sorted_forceplate_var_names)
             % ImportForcePlateData
             %   foldername: folder that stores the text files imported from VICON
@@ -172,8 +147,33 @@ classdef Subject_obj < handle
                 end
             end       
             trial_fplate_data = this.sbj_fplate_data{trial_no};           
-        end  
+        end
         
+        function [var, var_indice] = extractMarkers(this, marker_names, raw_headernames, M)
+            % select only the positions of markers in the list
+            var_indice = [];
+            for i = 1:length(marker_names)
+                for j = 1:size(raw_headernames, 2)
+                    if strcmp(raw_headernames{j}, [this.sbj_name, ':', marker_names{i}])
+                        var_indice = [var_indice, j]; %#ok<AGROW>
+                    end
+                end
+            end
+            var = [];
+            for i = 1:length(var_indice)
+                var = [var, M(:, 3*(var_indice(i)-1) + 1 : 3*(var_indice(i)-1) + 3)]; %#ok<AGROW>
+            end
+        end
+        
+        function markerdata = sortMarker(~, data, n_markers)
+            [rows, ~] = size(data);
+            markerdata = zeros(rows,3, n_markers);          
+            %sort by marker
+            for n = 0: n_markers - 1
+                markerdata(:,:, n+1) = data(:, 3*n + 1 : 3*n + 3);
+            end
+        end
+               
         %% Visualization
         function plotCoPvsTime(this, trial_no, plate_name) 
             var_name = 'CoP';
