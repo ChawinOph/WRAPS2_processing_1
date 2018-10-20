@@ -3,8 +3,10 @@ clc; clear; close all;
 tic
 %% Setup folder directory
 sbj_folder_names = {'w001_2018-09-18'};
-sbj_ids = {'w001'};
+sbj_idcs = {'w001'};
 sbj_names = {'WRAPS2_Chawin'};
+
+load 'marker_pos_CAD.mat';
 
 %% Setup sorted marker names for each segments (May subject to cahnge for each subject)
 pelvis_sorted_marker_names = {'P_Top_R', 'P_Front_L', 'P_Top_L', 'P_Back_L', 'P_Hip_R', 'P_ASIS_R', 'P_ASIS_L', 'P_Hip_L'};
@@ -27,7 +29,7 @@ forcePlate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % tr
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
-sbj1 = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names);
+sbj1 = Subject(sbj_index, sbj_folder_names, sbj_idcs, sbj_names);
 
 %% import data
 sbj1.importMarkerData_csv(trial_no, markers_static_max_flexion_trials, sorted_marker_names);
@@ -35,12 +37,12 @@ sbj1.ImportForcePlateData_csv(trial_no, forcePlate_static_max_flexion_trials, fo
 toc
 
 figure;
-sbj1.plotCoPvsTime(trial_no, 'Seat Plate'); 
+sbj1.plotFvsTime(trial_no, 'Seat Plate'); 
 title('Seat Plate')
 
 figure;
-sbj1.plotCoPvsTime(trial_no, 'Seat Plate'); 
-title('Seat Plate')
+sbj1.plotFvsTime(trial_no, 'Foot Plate'); 
+title('Foot Plate')
 
 figure;
 sbj1.plotTrajCoP(trial_no, 'Seat Plate'); 

@@ -12,12 +12,11 @@ classdef Subject < handle
         sbj_index = 0;                   % index number of subject
         sbj_id = '';                     % string of a subject id, e.g., w001.
         sbj_name = '';                   % string of a subject name, e.g., 'Chawin'
-        sbj_trial_names = {};            % cell array of trial names
-        sbj_marker_data = {}             % cell array of MarkerData obj.
-        sbj_fplate_data = {}             % cell array of FPlateData obj.
         weight = 0;                      % kg
-        height = 0;                      % m
-        sbj_anthro_model                 % instance of a class of used anthropometric model
+        height = 0;                      % cm
+        trial_data = struct()            % stucture data of objects with corresponding to trial names
+        sbj_anthro_models = {}           % cell array of AnthroModel obj.
+        sbj_WRAPS2_models = {}           % cell array of 
     end
     
     methods
@@ -34,7 +33,7 @@ classdef Subject < handle
         %% Member functions
         
         %% Import data
-        function trial_marker_data = importMarkerData_csv(this, trial_no, trial_file_names, sorted_marker_names)
+        function importMarkerData_csv(this, trial_no, trial_file_names, sorted_marker_names)
             % ImportMarkerData
             %   foldername: folder that stores the text files imported from VICON
             %   textfilename: name of a text file (without .csv)
@@ -43,7 +42,7 @@ classdef Subject < handle
             %   then sorts by by marker or time.
             
             % store trial name
-            this.sbj_trial_names{trial_no} = trial_file_names{this.sbj_index};
+            this.trial_data(trial_no).marker_trial_name =  trial_file_names{this.sbj_index};
             
             % Setup file directory
             d = dir([this.sbj_folder_name,'\', this.vicon_folder_name, '\', trial_file_names{this.sbj_index}, '.csv']);
@@ -73,20 +72,20 @@ classdef Subject < handle
             % get rid of empty cells
             raw_headernames = raw_headernames(~cellfun('isempty',raw_headernames));
             
-            this.sbj_marker_data{trial_no} = MarkerTrialData(trial_file_names{this.sbj_index});
+            % create object 
+            this.trial_data(trial_no).marker_data = MarkerTrialData();
             
-            % allocate each segment data to struc
+            % allocate each segment data to object
             for seg_no = 1:length(sorted_marker_names)
                 [var, var_indice] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_filt);
                 marker_pos = this.sortMarker(var, length(var_indice));
-                this.sbj_marker_data{trial_no}.marker_segments{seg_no} = MarkerSegment(sorted_marker_names{seg_no}, marker_pos);
+                this.trial_data(trial_no).marker_data.marker_segments{seg_no} =  MarkerSegment(sorted_marker_names{seg_no}, marker_pos);
             end
-            
-            trial_marker_data = this.sbj_marker_data{trial_no};
+
             
         end
         
-        function trial_fplate_data = ImportForcePlateData_csv(this, trial_no, trial_file_names, sorted_forceplate_names, sorted_forceplate_var_names)
+        function ImportForcePlateData_csv(this, trial_no, trial_file_names, sorted_forceplate_names, sorted_forceplate_var_names)
             % ImportForcePlateData
             %   foldername: folder that stores the text files imported from VICON
             %   textfilename: name of a text file (without .txt)
@@ -122,13 +121,14 @@ classdef Subject < handle
             % get rid of empty cells
             headernames = headernames(~cellfun('isempty',headernames));
             
-            this.sbj_fplate_data{trial_no} =  ForcePlateTrialData(trial_file_names);
-            this.sbj_fplate_data{trial_no}.fplate_names =  sorted_forceplate_names;
+            this.trial_data(trial_no).fplate_trial_name =  trial_file_names{this.sbj_index};
+            this.trial_data(trial_no).fplate_data =  ForcePlateTrialData();
+            this.trial_data(trial_no).fplate_data.fplate_names =  sorted_forceplate_names;
             
             % store data base on the force plate and variable names
             for plate_no = 1:length(sorted_forceplate_names)
-                this.sbj_fplate_data{trial_no}.fplate_units{plate_no} = ForcePlateData();
-                this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.var_names = sorted_forceplate_var_names;
+                this.trial_data(trial_no).fplate_data.fplate_units{plate_no} = ForcePlateData();
+                this.trial_data(trial_no).fplate_data.fplate_units{plate_no}.var_names = sorted_forceplate_var_names;
                 for var_no = 1:length(sorted_forceplate_var_names)
                     % Assign a variable name
                     var_indice = [];
@@ -139,12 +139,11 @@ classdef Subject < handle
                     end
                     fplate_var = [];
                     for i = 1:length(var_indice)
-                        fplate_var = [fplate_var, F_filt(:, 3*(var_indice(i)-1) + 1 : 3*(var_indice(i)-1) + 3)]; %#ok<AGROW>
+                        fplate_var = [fplate_var, F_filt(:, 3*(var_indice(i) - 1) + 1 : 3*(var_indice(i) - 1) + 3)]; %#ok<AGROW>
                     end
-                    this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no) = fplate_var;
+                    this.trial_data(trial_no).fplate_data.fplate_units{plate_no}.fplate_var(:, :, var_no) = fplate_var;
                 end
             end
-            trial_fplate_data = this.sbj_fplate_data{trial_no};
         end
         
         function [var, var_indice] = extractMarkers(this, marker_names, raw_headernames, M)
@@ -175,9 +174,9 @@ classdef Subject < handle
         %% Visualization
         function plotCoPvsTime(this, trial_no, plate_name)
             var_name = 'CoP';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
+            plate_no = find(strcmp(this.trial_data(trial_no).fplate_data.fplate_names, plate_name));
             var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
-            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
+            var = this.trial_data(trial_no).fplate_data.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
             t = (0:1:length(var)-1)/this.freq_fplate;
             plot(t, var);
             xlim([0 max(t)]);
@@ -185,9 +184,9 @@ classdef Subject < handle
         
         function plotFvsTime(this, trial_no, plate_name)
             var_name = 'Force';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
-            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
-            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
+            plate_no = find(strcmp(this.trial_data(trial_no).fplate_data.fplate_names, plate_name));
+            var_no = find(strcmp(this.trial_data(trial_no).fplate_data.fplate_units{1, plate_no}.var_names, var_name));
+            var = this.trial_data(trial_no).fplate_data.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
             t = (0:1:length(var)-1)/this.freq_fplate;
             plot(t, var);
             xlim([0 max(t)]);
@@ -195,9 +194,9 @@ classdef Subject < handle
         
         function plotTrajCoP(this, trial_no, plate_name)
             var_name = 'CoP';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
-            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
-            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
+            plate_no = find(strcmp(this.trial_data(trial_no).fplate_data.fplate_names, plate_name));
+            var_no = find(strcmp(this.trial_data(trial_no).fplate_data.fplate_units{1, plate_no}.var_names, var_name));
+            var = this.trial_data(trial_no).fplate_data.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
             plot(var(:,1)-var(1,1), var(:,2)-var(1,2));
             grid on; grid minor;
             axis equal
