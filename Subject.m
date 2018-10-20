@@ -1,4 +1,4 @@
-classdef Subject_obj < handle
+classdef Subject < handle
     %Subject: Class of a human subject
     %   Detailed explanation goes here
     properties (Constant)
@@ -12,7 +12,7 @@ classdef Subject_obj < handle
         sbj_index = 0;                   % index number of subject
         sbj_id = '';                     % string of a subject id, e.g., w001.
         sbj_name = '';                   % string of a subject name, e.g., 'Chawin'
-        sbj_trial_names = {};            % cell array of trial names 
+        sbj_trial_names = {};            % cell array of trial names
         sbj_marker_data = {}             % cell array of MarkerData obj.
         sbj_fplate_data = {}             % cell array of FPlateData obj.
         weight = 0;                      % kg
@@ -22,7 +22,7 @@ classdef Subject_obj < handle
     
     methods
         %% Constructor
-        function this = Subject_obj(sbj_index, sbj_folder_names, sbj_ids, sbj_names)
+        function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names)
             %Subject Construct an instance of this class
             %   Detailed explanation goes here
             this.sbj_folder_name = sbj_folder_names{sbj_index};
@@ -73,17 +73,15 @@ classdef Subject_obj < handle
             % get rid of empty cells
             raw_headernames = raw_headernames(~cellfun('isempty',raw_headernames));
             
-%             this.sbj_marker_data(trial_no).trial_file_name = trial_file_names{this.sbj_index};
-           
             this.sbj_marker_data{trial_no} = MarkerTrialData(trial_file_names{this.sbj_index});
             
             % allocate each segment data to struc
-            for seg_no = 1:length(sorted_marker_names)                
+            for seg_no = 1:length(sorted_marker_names)
                 [var, var_indice] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_filt);
-                marker_pos = this.sortMarker(var, length(var_indice));                   
+                marker_pos = this.sortMarker(var, length(var_indice));
                 this.sbj_marker_data{trial_no}.marker_segments{seg_no} = MarkerSegment(sorted_marker_names{seg_no}, marker_pos);
             end
-           
+            
             trial_marker_data = this.sbj_marker_data{trial_no};
             
         end
@@ -128,11 +126,11 @@ classdef Subject_obj < handle
             this.sbj_fplate_data{trial_no}.fplate_names =  sorted_forceplate_names;
             
             % store data base on the force plate and variable names
-            for plate_no = 1:length(sorted_forceplate_names) 
+            for plate_no = 1:length(sorted_forceplate_names)
                 this.sbj_fplate_data{trial_no}.fplate_units{plate_no} = ForcePlateData();
-                this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.var_names = sorted_forceplate_var_names;   
+                this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.var_names = sorted_forceplate_var_names;
                 for var_no = 1:length(sorted_forceplate_var_names)
-                    % Assign a variable name                
+                    % Assign a variable name
                     var_indice = [];
                     for k = 1:size(headernames, 2)
                         if strcmp(headernames{k}, [sorted_forceplate_names{plate_no}, ' - ', sorted_forceplate_var_names{var_no}])
@@ -142,11 +140,11 @@ classdef Subject_obj < handle
                     fplate_var = [];
                     for i = 1:length(var_indice)
                         fplate_var = [fplate_var, F_filt(:, 3*(var_indice(i)-1) + 1 : 3*(var_indice(i)-1) + 3)]; %#ok<AGROW>
-                    end     
+                    end
                     this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no) = fplate_var;
                 end
-            end       
-            trial_fplate_data = this.sbj_fplate_data{trial_no};           
+            end
+            trial_fplate_data = this.sbj_fplate_data{trial_no};
         end
         
         function [var, var_indice] = extractMarkers(this, marker_names, raw_headernames, M)
@@ -167,38 +165,38 @@ classdef Subject_obj < handle
         
         function markerdata = sortMarker(~, data, n_markers)
             [rows, ~] = size(data);
-            markerdata = zeros(rows,3, n_markers);          
-            %sort by marker
+            markerdata = zeros(rows,3, n_markers);
+            % Sort by marker
             for n = 0: n_markers - 1
                 markerdata(:,:, n+1) = data(:, 3*n + 1 : 3*n + 3);
             end
         end
-               
+        
         %% Visualization
-        function plotCoPvsTime(this, trial_no, plate_name) 
+        function plotCoPvsTime(this, trial_no, plate_name)
             var_name = 'CoP';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));   
-            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));   
-            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>            
-            t = (0:1:length(var)-1)/this.freq_fplate; 
+            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
+            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
+            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
+            t = (0:1:length(var)-1)/this.freq_fplate;
             plot(t, var);
-            xlim([0 max(t)]); 
+            xlim([0 max(t)]);
         end
         
         function plotFvsTime(this, trial_no, plate_name)
             var_name = 'Force';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));   
-            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));   
-            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>            
-            t = (0:1:length(var)-1)/this.freq_fplate; 
+            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
+            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
+            var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
+            t = (0:1:length(var)-1)/this.freq_fplate;
             plot(t, var);
-            xlim([0 max(t)]); 
+            xlim([0 max(t)]);
         end
         
-        function plotTrajCoP(this, trial_no, plate_name) 
+        function plotTrajCoP(this, trial_no, plate_name)
             var_name = 'CoP';
-            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));   
-            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));   
+            plate_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_names, plate_name));
+            var_no = find(strcmp(this.sbj_fplate_data{1, 1}.fplate_units{1, plate_no}.var_names, var_name));
             var = this.sbj_fplate_data{trial_no}.fplate_units{plate_no}.fplate_var(:, :, var_no); %#ok<FNDSB>
             plot(var(:,1)-var(1,1), var(:,2)-var(1,2));
             grid on; grid minor;

@@ -27,7 +27,7 @@ forcePlate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % tr
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
-sbj1 = Subject_obj(sbj_index, sbj_folder_names, sbj_ids, sbj_names);
+sbj1 = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names);
 
 %% import data
 sbj1.importMarkerData_csv(trial_no, markers_static_max_flexion_trials, sorted_marker_names);
