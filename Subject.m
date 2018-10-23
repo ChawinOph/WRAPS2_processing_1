@@ -91,7 +91,7 @@ classdef Subject < handle
             
             % calculate transformation of braces from raw vicon data
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
-            this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data = this.sbj_marker_cluster_pos;
+            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
             calcTransformation(this, trial_no, 'Pelvis', 'Pelvis Brace')
             calcTransformation(this, trial_no, 'Thorax', 'Thorax Brace')
             
@@ -233,8 +233,8 @@ classdef Subject < handle
             end
             
             % store in the WRAPS2 instance       
-            this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(cluster_no).marker_pos = vicon_pos;
-            this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(cluster_no).transforms_vicon2seg = T_v2s;
+            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_pos = vicon_pos;
+            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg = T_v2s;
             disp(['Updated ', cluster_name, ' transformations in trial no. ', num2str(trial_no)])
         end
        
@@ -284,19 +284,19 @@ classdef Subject < handle
             this.plotTrajCoP(trial_no, 'Foot Plate');
             
             % show initial pos of marker clusters of both rings
-            pelvis_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).transform_trial_data.cluster_name}, 'Pelvis Brace');
-            thorax_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).transform_trial_data.cluster_name}, 'Thorax Brace');
+            pelvis_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thorax_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
             
-            init_pelvis_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(pelvis_cluster_no).marker_pos(1, :, :), 3, []);
-            init_thorax_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(thorax_cluster_no).marker_pos(1, :, :), 3, []);
+            init_pelvis_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).marker_pos(1, :, :), 3, []);
+            init_thorax_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(thorax_cluster_no).marker_pos(1, :, :), 3, []);
             scatter3(init_pelvis_marker_pos(1, :), init_pelvis_marker_pos(2, :), init_pelvis_marker_pos(3, :))
             scatter3(init_thorax_marker_pos(1, :), init_thorax_marker_pos(2, :), init_thorax_marker_pos(3, :))
             
             
             title(this.raw_data(trial_no).marker_trial_name)
-            for time_step = 1: 100 : length(this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(pelvis_cluster_no).transforms_vicon2seg)
-                T_v2pelvis = this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
-                T_v2thorax = this.sbj_WRAPS2.vicon_transforms(trial_no).transform_trial_data(thorax_cluster_no).transforms_vicon2seg(:,:,time_step);
+            for time_step = 1: 100 : length(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
+                T_v2pelvis = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
+                T_v2thorax = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,time_step);
                 this.plotCoordinatesTransform(T_v2pelvis, 100);
                 this.plotCoordinatesTransform(T_v2thorax, 100);
             end
