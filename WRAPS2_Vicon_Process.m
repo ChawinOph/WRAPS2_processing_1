@@ -37,6 +37,9 @@ sbj1.importMarkerData_csv(trial_no, markers_static_max_flexion_trials, sorted_se
 sbj1.importForcePlateData_csv(trial_no, forcePlate_static_max_flexion_trials, forceplate_names, fplate_var_names);
 sbj1.importMarkerData_csv(2, markers_static_max_flexion_trials, sorted_segment_names, sorted_marker_names);
 sbj1.importForcePlateData_csv(2, forcePlate_static_max_flexion_trials, forceplate_names, fplate_var_names);
+
+% Calculate transformation of the WRAPS2.0 from vicon
+
 toc
 
 sbj1.vizTrial(trial_no)

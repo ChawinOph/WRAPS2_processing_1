@@ -8,7 +8,7 @@ classdef AnthroModel < handle
     properties
         segments               % cell array of segment objects (can be in differnet class)
         segment_names          % name of the segment
-        global_transforms      % transform of all segments 
+        global_transforms      % transform of all segments (4 x 4 x no_segments)
         total_center_of_mass   % center of mass pos w.r.t inertial frame
     end
     
