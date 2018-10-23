@@ -6,7 +6,6 @@ sbj_folder_names = {'w001_2018-09-18'};
 sbj_idcs = {'w001'};
 sbj_names = {'WRAPS2_Chawin'};
 
-load 'marker_pos_CAD.mat'; % can be edited in future like saving the cluster of (virtual) markers for static trials
 load 'marker_cluster_pos.mat'; % can be edited in future like saving the cluster of (virtual) markers for static trials
 
 %% Setup sorted marker names for each segments (May vary for different subjects)

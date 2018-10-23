@@ -1,16 +1,17 @@
-classdef WRAPS2
+classdef WRAPS2 < handle
     %WRAPS_2 Summary of this class goes here
     %   Detailed explanation goes here
     
     properties
-        brace_transform
+        kin_model                     % structure() of kinematic model
+        vicon_transforms = struct()   % transformation of braces from vicon for eahc trial
     end
     
     methods
-        function obj = untitled4(inputArg1,inputArg2)
+        function obj = WRAPS2()
             %UNTITLED4 Construct an instance of this class
             %   Detailed explanation goes here
-            obj.Property1 = inputArg1 + inputArg2;
+%             obj.Property1 = inputArg1 + inputArg2;
         end
         
         function outputArg = method1(obj,inputArg)

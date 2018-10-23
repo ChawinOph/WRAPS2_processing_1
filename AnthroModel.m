@@ -17,12 +17,12 @@ classdef AnthroModel < handle
             %AnthroModel Construct an instance of this class
             %   Detailed explanation goes here
         end
-        
-        function outputArg = (this, inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = this.Property1 + inputArg;
-        end
+%         
+%         function outputArg = (this, inputArg)
+%             %METHOD1 Summary of this method goes here
+%             %   Detailed explanation goes here
+%             outputArg = this.Property1 + inputArg;
+%         end
     end
 end
 
