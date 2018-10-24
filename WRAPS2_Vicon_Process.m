@@ -21,11 +21,19 @@ fplate_var_names = {'Force', 'CoP'};
 
 %% Setup VICON markers trial file names by the order of subjects
 %# Markers_static_baseline = {''};
-markers_static_max_flexion_trials = {'Static Max Flexion03 Markers'}; % trial no. 1
+markers_static_max_flexion_trials = {'Static Max Flexion03 Markers'}; % match with trial no. 1 (construct a 2D cell later)
+
+markers_max_reach_knee_ipsi_trials = {'Max Reach Knee Ipsi Markers'}; % match with trial no. 2
+
+markers_static_max_rbend_trials = {'Static Max R-Side Bend01 Markers'}; % match with trial no. 3
 
 %% Setup VICON force plate trial file names by the order of subjects
 % forceplate_static_baseline = {'Static Max Flexion03 ForcePlate'};
-forcePlate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % trial no. 1
+force_plate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % trial no. 1
+
+force_plate_max_reach_knee_ipsi_trials = {'Max Reach Knee Ipsi ForcePlate'}; % trial no. 2
+
+force_plate__static_max_rbend_trials = {'Static Max R-Side Bend01 ForcePlate'}; % trial no. 3
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
@@ -33,17 +41,21 @@ sbj1 = Subject(sbj_index, sbj_folder_names, sbj_idcs, sbj_names, marker_cluster_
 
 %% import data
 sbj1.importMarkerData_csv(trial_no, markers_static_max_flexion_trials, sorted_segment_names, sorted_marker_names);
-sbj1.importForcePlateData_csv(trial_no, forcePlate_static_max_flexion_trials, forceplate_names, fplate_var_names);
-sbj1.importMarkerData_csv(2, markers_static_max_flexion_trials, sorted_segment_names, sorted_marker_names);
-sbj1.importForcePlateData_csv(2, forcePlate_static_max_flexion_trials, forceplate_names, fplate_var_names);
+sbj1.importForcePlateData_csv(trial_no, force_plate_static_max_flexion_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(2, markers_max_reach_knee_ipsi_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(2, force_plate_max_reach_knee_ipsi_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(3, markers_static_max_rbend_trials, sorted_segment_names, sorted_marker_names, {'P_Back_L'});
+sbj1.importForcePlateData_csv(3, force_plate__static_max_rbend_trials, forceplate_names, fplate_var_names);
 
 % Calculate transformation of the WRAPS2.0 from vicon
-
 toc
 
 sbj1.vizTrial(trial_no)
+sbj1.vizTrial(2)
 
-
+sbj1.vizTrial(3)
 
 
 

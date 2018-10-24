@@ -3,7 +3,7 @@ classdef WRAPS2 < handle
     %   Detailed explanation goes here
     
     properties
-        kin_model                     % structure() of kinematic model
+        kin_model                     % static structure() of kinematic model
         vicon_transforms = struct()   % transformation of braces from vicon for eahc trial
     end
     

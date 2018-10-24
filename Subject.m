@@ -37,9 +37,8 @@ classdef Subject < handle
         
         %% Member functions
         
-        %% Import data
-        
-        function importMarkerData_csv(this, trial_no, trial_file_names, sorted_segment_names, sorted_marker_names)
+        %% Import data        
+        function importMarkerData_csv(this, trial_no, trial_file_names, sorted_segment_names, sorted_marker_names, removed_marker_names)
             % ImportMarkerData
             %   foldername: folder that stores the text files imported from VICON
             %   textfilename: name of a text file (without .csv)
@@ -78,8 +77,18 @@ classdef Subject < handle
             % get rid of empty cells
             raw_headernames = raw_headernames(~cellfun('isempty',raw_headernames));
             
+            % delete some columns of removed marker names
+            
+            
             % allocate each segment data to structure
             for seg_no = 1:length(sorted_marker_names)
+                if nargin > 5
+                    % go through each set of marker names on each segment 
+                    % and remove the unwanted marker name
+                    for i = 1:length(removed_marker_names)                       
+                        sorted_marker_names{seg_no} = sorted_marker_names{seg_no}(~strcmp(sorted_marker_names{seg_no}, removed_marker_names{i}));
+                    end
+                end
                 [var, var_indice] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_filt);
                 marker_pos = this.sortMarker(var, length(var_indice));
                 this.raw_data(trial_no).marker_data(seg_no).segment_names = sorted_segment_names{seg_no};
@@ -92,8 +101,8 @@ classdef Subject < handle
             % calculate transformation of braces from raw vicon data
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
-            calcTransformation(this, trial_no, 'Pelvis', 'Pelvis Brace')
-            calcTransformation(this, trial_no, 'Thorax', 'Thorax Brace')
+            this.calcTransformation(trial_no, 'Pelvis', 'Pelvis Brace')
+            this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace')
             
         end
         
@@ -192,18 +201,31 @@ classdef Subject < handle
             % match the cluster/segment names
             segment_no = find(strcmp({this.raw_data(trial_no).marker_data.segment_names}, vicon_segment_name));
             cluster_no = find(strcmp({this.sbj_marker_cluster_pos.cluster_name}, cluster_name));
-            used_marker_indcs = zeros(length(this.sbj_marker_cluster_pos(cluster_no).marker_names), 1);
-            for i = 1: length(used_marker_indcs)
-                % find the indcs of all recorded markers begin used in the
-                % cluster
-                used_marker_indcs(i) = find(strcmp(this.raw_data(trial_no).marker_data(segment_no).marker_names, ...
+            used_marker_indcs = [];
+            
+            for i = 1: length(this.sbj_marker_cluster_pos(cluster_no).marker_names)
+                % find the indcs of all recorded markers used in cluster
+                found_indx = find(strcmp(this.raw_data(trial_no).marker_data(segment_no).marker_names, ...
                     this.sbj_marker_cluster_pos(cluster_no).marker_names{i}));
+                if found_indx ~= 0
+                    used_marker_indcs = [used_marker_indcs, find(strcmp(this.raw_data(trial_no).marker_data(segment_no).marker_names, ...
+                        this.sbj_marker_cluster_pos(cluster_no).marker_names{i}))]; %#ok<AGROW>
+                else
+                    % if the name is not found, remove the name in the stored trial transform data in WRAPS2 obj.
+                    % and also the respectiive column of marker_static_pos
+                    original_marker_names = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_names;
+                    original_static_marker_pos = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos;
+                    new_marker_names = original_marker_names(~strcmp(original_marker_names, original_marker_names{i}));
+                    new_static_marker_pos = original_static_marker_pos(~strcmp(original_marker_names, original_marker_names{i}), :);
+                    this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_names = new_marker_names;
+                    this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos = new_static_marker_pos;
+                end               
             end
             
             % store the 3d matrix of marker pos from the trial in the same order as
             % the static cluster pos
             vicon_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos(:, :, used_marker_indcs);
-            cluster_pos = this.sbj_marker_cluster_pos(cluster_no).marker_static_pos;        
+            cluster_pos = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
             
             % Use Least Square Rigid Body Motion by SVD (http://www.igl.ethz.ch/projects/ARAP/svd_rot.pdf)
             cluster_pos_centroid = mean(cluster_pos)'; %
@@ -236,6 +258,7 @@ classdef Subject < handle
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_pos = vicon_pos;
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg = T_v2s;
             disp(['Updated ', cluster_name, ' transformations in trial no. ', num2str(trial_no)])
+            
         end
        
         %% Visualization
@@ -284,15 +307,14 @@ classdef Subject < handle
             this.plotTrajCoP(trial_no, 'Foot Plate');
             
             % show initial pos of marker clusters of both rings
-            pelvis_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
-            thorax_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+            pelvis_cluster_no = strcmp({this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thorax_cluster_no = strcmp({this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
             
             init_pelvis_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).marker_pos(1, :, :), 3, []);
             init_thorax_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(thorax_cluster_no).marker_pos(1, :, :), 3, []);
             scatter3(init_pelvis_marker_pos(1, :), init_pelvis_marker_pos(2, :), init_pelvis_marker_pos(3, :))
             scatter3(init_thorax_marker_pos(1, :), init_thorax_marker_pos(2, :), init_thorax_marker_pos(3, :))
-            
-            
+                        
             title(this.raw_data(trial_no).marker_trial_name)
             for time_step = 1: 100 : length(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
                 T_v2pelvis = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
@@ -302,8 +324,7 @@ classdef Subject < handle
             end
         end      
         
-        % visual elements
-        
+        % visual elements        
         function plotCoordinatesTransform(~, T, scale)
             % PlotCoordinate: Plot coordinates in the XYZ-RGB sequence
             origin = T(1:3,4);
