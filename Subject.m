@@ -8,15 +8,16 @@ classdef Subject < handle
     end
     
     properties (Access = public)
-        sbj_folder_name = '';               % string of a folder name that contains all subject data, e.g., 'w001_2018-09-18'
-        sbj_index = 0;                      % index number of subject
-        sbj_id = '';                        % string of a subject id, e.g., w001.
-        sbj_name = '';                      % string of a subject name, e.g., 'Chawin'
-        sbj_anthro_measurement              % struc of subject measurement data
-        sbj_marker_cluster_pos = struct();  % struc of marker clusters on subject 
-        raw_data = struct()                 % stucture of recoded raw/processed data from the vicon
-        sbj_anthro = AnthroModel()          % object of human model containing transforms of all body segments
-        sbj_WRAPS2 = WRAPS2()               % object of WRAPS on the subject containing transforms of rings from CAD
+        sbj_folder_name = '';                   % string of a folder name that contains all subject data, e.g., 'w001_2018-09-18'
+        sbj_index = 0;                          % index number of subject
+        sbj_id = '';                            % string of a subject id, e.g., w001.
+        sbj_name = '';                          % string of a subject name, e.g., 'Chawin'
+        sbj_anthro_measurement                  % struct of subject measurement data
+        sbj_marker_cluster_pos = struct();      % struct of marker clusters on subject 
+        sbj_landmark_cluster_pos = struct();    % struct of landmark clusters on subject
+        raw_data = struct()                     % stucture of recoded raw data from the vicon
+%         sbj_anthro = AnthroModel()              % object of human model containing transforms of all body segments
+        sbj_WRAPS2 = WRAPS2()                   % object of WRAPS on the subject containing transforms of rings from CAD
     end
     
     methods
@@ -33,6 +34,7 @@ classdef Subject < handle
             this.sbj_anthro_measurement.weight_kg = 72; % kg
             this.sbj_anthro_measurement.height_cm = 173; % cm
             this.sbj_marker_cluster_pos = this.importMarkerClusterPos(marker_cluster_pos);
+%             this.sbj_marker_cluster_pos = this.importLandmarkClusterPos(marker_cluster_pos);
         end
         
         %% Member functions
@@ -77,9 +79,6 @@ classdef Subject < handle
             % get rid of empty cells
             raw_headernames = raw_headernames(~cellfun('isempty',raw_headernames));
             
-            % delete some columns of removed marker names
-            
-            
             % allocate each segment data to structure
             for seg_no = 1:length(sorted_marker_names)
                 if nargin > 5
@@ -101,8 +100,12 @@ classdef Subject < handle
             % calculate transformation of braces from raw vicon data
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
             this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
-            this.calcTransformation(trial_no, 'Pelvis', 'Pelvis Brace')
-            this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace')
+            this.calcTransformation(trial_no, 'Pelvis', 'Pelvis Brace');
+            this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace');
+            
+            % calculate transformation of body segments from raw vicon data
+%             this.sbj_anthro.raw_marker_data(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
+%             this.sbj_anthro.raw_marker_data(trial_no).raw_marker_data = this.raw_data(trial_no).marker_data;
             
         end
         
@@ -336,8 +339,8 @@ classdef Subject < handle
             quiver3(x,y,z,axis_x(1),axis_x(2),axis_x(3),scale,'color','r'); hold on
             quiver3(x,y,z,axis_y(1),axis_y(2),axis_y(3),scale,'color','g')
             quiver3(x,y,z,axis_z(1),axis_z(2),axis_z(3),scale,'color','b')
-        end
-        
+        end       
+                
     end
 end
 

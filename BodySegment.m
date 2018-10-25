@@ -8,7 +8,8 @@ classdef BodySegment < handle
         global_cm_trans             % 
         local_cm_trans              % local transformation from proximal to cm
         local_distal_trans          % local transformation from proximal to distal joint
-        vicon_transforms = struct() % vicon transform struc
+        vicon_segment_names         % used vicon segment names in raw data
+        vicon_marker_names          % rows of used vicon marker names. Each row is based on each segment
     end
     
     methods
@@ -16,7 +17,7 @@ classdef BodySegment < handle
             %BodySegment Construct an instance of this class
             %   Detailed explanation goes here          
         end
-        
+       
     end
 end
 
