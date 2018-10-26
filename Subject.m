@@ -14,10 +14,10 @@ classdef Subject < handle
         sbj_name = '';                          % string of a subject name, e.g., 'Chawin'
         sbj_anthro_measurement                  % struct of subject measurement data
         sbj_marker_cluster_pos = struct();      % struct of marker clusters on subject 
-        sbj_landmark_cluster_pos = struct();    % struct of landmark clusters on subject
+        sbj_landmark_config = struct();         % struct of landmark clusters on subject
         raw_data = struct()                     % stucture of recoded raw data from the vicon
-%         sbj_anthro = AnthroModel()              % object of human model containing transforms of all body segments
-        sbj_WRAPS2 = WRAPS2()                   % object of WRAPS on the subject containing transforms of rings from CAD
+        sbj_anthro = struct()                   % object of human model containing transforms of all body segments
+        sbj_WRAPS2 = struct()                   % object of WRAPS on the subject containing transforms of rings from CAD
     end
     
     methods
@@ -33,8 +33,7 @@ classdef Subject < handle
             this.sbj_anthro_measurement.sbj_name = this.sbj_name;
             this.sbj_anthro_measurement.weight_kg = 72; % kg
             this.sbj_anthro_measurement.height_cm = 173; % cm
-            this.sbj_marker_cluster_pos = this.importMarkerClusterPos(marker_cluster_pos);
-%             this.sbj_marker_cluster_pos = this.importLandmarkClusterPos(marker_cluster_pos);
+            this.importMarkerClusterPos(marker_cluster_pos);
         end
         
         %% Member functions
@@ -98,14 +97,11 @@ classdef Subject < handle
             disp(['Imported raw marker data from trial no. ', num2str(trial_no), ' (', this.raw_data(trial_no).marker_trial_name, ')'])
             
             % calculate transformation of braces from raw vicon data
-            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
-            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
+            this.sbj_WRAPS2(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
+            this.sbj_WRAPS2(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
             this.calcTransformation(trial_no, 'Pelvis', 'Pelvis Brace');
-            this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace');
-            
-            % calculate transformation of body segments from raw vicon data
-%             this.sbj_anthro.raw_marker_data(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
-%             this.sbj_anthro.raw_marker_data(trial_no).raw_marker_data = this.raw_data(trial_no).marker_data;
+            this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace');           
+            this.calcLandmarkPos(trial_no);
             
         end
         
@@ -193,9 +189,10 @@ classdef Subject < handle
             end
         end
         
-        function sbj_marker_cluster_pos = importMarkerClusterPos(this, marker_cluster_pos)
+        function importMarkerClusterPos(this, marker_cluster_pos)
             n = strcmp({marker_cluster_pos.sbj_id}, this.sbj_id);
-            sbj_marker_cluster_pos = marker_cluster_pos(n).cluster;
+            this.sbj_marker_cluster_pos = marker_cluster_pos(n).WRAPS_cluster;
+            this.sbj_landmark_config = marker_cluster_pos(n).landmark_config;
         end
                 
         %% Calculate Transformations of marker clusters in the specified trial   
@@ -216,21 +213,22 @@ classdef Subject < handle
                 else
                     % if the name is not found, remove the name in the stored trial transform data in WRAPS2 obj.
                     % and also the respectiive column of marker_static_pos
-                    original_marker_names = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_names;
-                    original_static_marker_pos = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos;
+                    original_marker_names = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_names;
+                    original_static_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;
                     new_marker_names = original_marker_names(~strcmp(original_marker_names, original_marker_names{i}));
                     new_static_marker_pos = original_static_marker_pos(~strcmp(original_marker_names, original_marker_names{i}), :);
-                    this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_names = new_marker_names;
-                    this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos = new_static_marker_pos;
+                    this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_names = new_marker_names;
+                    this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos = new_static_marker_pos;
                 end               
             end
             
             % store the 3d matrix of marker pos from the trial in the same order as
             % the static cluster pos
             vicon_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos(:, :, used_marker_indcs);
-            cluster_pos = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
+            cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
             
-            % Use Least Square Rigid Body Motion by SVD (http://www.igl.ethz.ch/projects/ARAP/svd_rot.pdf)
+            % Use Least Square Rigid Body Motion by SVD 
+            % (http://www.igl.ethz.ch/projects/ARAP/svd_rot.pdf)
             cluster_pos_centroid = mean(cluster_pos)'; %
             X = cluster_pos' - cluster_pos_centroid;
             T_v2s = zeros(4, 4, length(vicon_pos)); % tranform from v to a segment
@@ -258,10 +256,74 @@ classdef Subject < handle
             end
             
             % store in the WRAPS2 instance       
-            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).marker_pos = vicon_pos;
-            this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg = T_v2s;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos = vicon_pos;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg = T_v2s;
             disp(['Updated ', cluster_name, ' transformations in trial no. ', num2str(trial_no)])
             
+        end
+        
+        %% Calculate landmark positions
+        function calcLandmarkPos(this, trial_no)
+            % pelvis landmark
+            this.sbj_anthro(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
+            this.sbj_anthro(trial_no).torso_landmark_names = {'UMBLC', 'R_ASIS', 'L_ASIS', 'R_PSIS', 'L_PSIS', 'R_HIP', 'L_HIP', 'SN', 'C7', 'XP', 'T8', 'VT'};
+            this.sbj_anthro(trial_no).landmark_pos = zeros(size(this.raw_data(trial_no).marker_data(1).marker_pos,1), 3, 12);
+            this.sbj_anthro(trial_no).body_segment_transform = struct();
+            this.sbj_anthro(trial_no).body_segment_transform(1).segment_name = 'Pelvis';
+            this.sbj_anthro(trial_no).body_segment_transform(2).segment_name = 'Thorax';
+            this.sbj_anthro(trial_no).body_segment_transform(3).segment_name = 'Head';
+            % get the pelvis landmark position
+            pelvis_cluster_indx = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thorax_cluster_indx = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+            T_v2pbrace = this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_indx).transforms_vicon2seg;
+            T_v2tbrace = this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_indx).transforms_vicon2seg;
+            
+            % get the five pelvis landmark
+            for i = [1:5, 11]
+                landmark_static_pos_indx = find(strcmp(this.sbj_landmark_config.WRAPS_landmark_names, this.sbj_anthro(trial_no).torso_landmark_names{i}));
+                if i <= 5
+                    T_pbrace2landmark = this.T_translate(this.sbj_landmark_config.WRAPS_landmark_static_pos(landmark_static_pos_indx, :));
+                    for j = 1:size(T_v2pbrace, 3)
+                        T = T_v2pbrace(:,:,j)*T_pbrace2landmark;
+                        this.sbj_anthro(trial_no).landmark_pos(j,:,i) = T(1:3,4);
+                    end
+                else
+                    T_tbrace2landmark = this.T_translate(this.sbj_landmark_config.WRAPS_landmark_static_pos(landmark_static_pos_indx, :));
+                    for j = 1:size(T_v2tbrace, 3)
+                        T = T_v2tbrace(:,:,j)*T_tbrace2landmark;
+                        this.sbj_anthro(trial_no).landmark_pos(j,:,i) = T(1:3,4);
+                    end
+                end
+            end
+            
+            % get the hip position
+            pelvis_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Pelvis');
+            P_Hip_R_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_R');
+            P_Hip_L_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_L');
+            
+            thorax_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Thorax');
+            sternal_notch_raw_indx = strcmp(this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_names, 'T_SternalNotch');
+            C7_raw_indx = strcmp(this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_names, 'T_C7');
+            xyphoid_raw_indx = strcmp(this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_names, 'T_Xyphoid');
+            
+            head_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Head');
+            vertex_raw_indx = strcmp(this.raw_data(trial_no).marker_data(head_raw_indx).marker_names, 'H_Vertex');
+            
+            this.sbj_anthro(trial_no).landmark_pos(:,:,6) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_R_raw_indx);
+            this.sbj_anthro(trial_no).landmark_pos(:,:,7) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_L_raw_indx);
+            this.sbj_anthro(trial_no).landmark_pos(:,:,8) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, sternal_notch_raw_indx);
+            this.sbj_anthro(trial_no).landmark_pos(:,:,9) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, C7_raw_indx);
+            this.sbj_anthro(trial_no).landmark_pos(:,:,10) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, xyphoid_raw_indx);
+            this.sbj_anthro(trial_no).landmark_pos(:,:,12) = this.raw_data(trial_no).marker_data(head_raw_indx).marker_pos(:, :, vertex_raw_indx);
+            
+             disp(['Updated anthropometric landmark positions in trial no. ', num2str(trial_no)])
+            
+        end
+        
+        %% Transformation Functions
+        function T = T_translate(~, vec)
+            T = eye(4);
+            T(1:3,4) = vec;
         end
        
         %% Visualization
@@ -293,8 +355,6 @@ classdef Subject < handle
             plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
             var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
             var = this.raw_data(trial_no).fplate_data(plate_no).fplate_var(:, :, var_no); %#ok<FNDSB>
-%             plot(var(:,1)-var(1,1), var(:,2)-var(1,2));
-%             plot(var(:,1), var(:,2));
             scat = scatter3(var(:,1), var(:,2), var(:, 3));
             scat.Marker = '.';
             grid on; grid minor;
@@ -310,21 +370,26 @@ classdef Subject < handle
             this.plotTrajCoP(trial_no, 'Foot Plate');
             
             % show initial pos of marker clusters of both rings
-            pelvis_cluster_no = strcmp({this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
-            thorax_cluster_no = strcmp({this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+            pelvis_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thorax_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
             
-            init_pelvis_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).marker_pos(1, :, :), 3, []);
-            init_thorax_marker_pos = reshape(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(thorax_cluster_no).marker_pos(1, :, :), 3, []);
+            init_pelvis_marker_pos = reshape(this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).marker_pos(1, :, :), 3, []);
+            init_thorax_marker_pos = reshape(this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_no).marker_pos(1, :, :), 3, []);
             scatter3(init_pelvis_marker_pos(1, :), init_pelvis_marker_pos(2, :), init_pelvis_marker_pos(3, :))
             scatter3(init_thorax_marker_pos(1, :), init_thorax_marker_pos(2, :), init_thorax_marker_pos(3, :))
                         
             title(this.raw_data(trial_no).marker_trial_name)
-            for time_step = 1: 100 : length(this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
-                T_v2pelvis = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
-                T_v2thorax = this.sbj_WRAPS2.vicon_transforms(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,time_step);
+            for time_step = 1: 100 : length(this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
+                T_v2pelvis = this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
+                T_v2thorax = this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,time_step);
                 this.plotCoordinatesTransform(T_v2pelvis, 100);
                 this.plotCoordinatesTransform(T_v2thorax, 100);
             end
+            
+            % landmark pos
+            landmark_vec = reshape(this.sbj_anthro(trial_no).landmark_pos(1000,:,1:12), 3, []);
+            scatter3(landmark_vec(1,:), landmark_vec(2,:), landmark_vec(3,:), '*');
+
         end      
         
         % visual elements        
@@ -340,7 +405,7 @@ classdef Subject < handle
             quiver3(x,y,z,axis_y(1),axis_y(2),axis_y(3),scale,'color','g')
             quiver3(x,y,z,axis_z(1),axis_z(2),axis_z(3),scale,'color','b')
         end       
-                
+          
     end
 end
 

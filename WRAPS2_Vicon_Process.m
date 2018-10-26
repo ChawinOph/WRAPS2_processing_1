@@ -63,16 +63,11 @@ sbj1.importForcePlateData_csv(4, force_plate_reach_max_shoulder_center_trials, f
 sbj1.importMarkerData_csv(5, markers_reach_max_shoulder_contra_trials, sorted_segment_names, sorted_marker_names);
 sbj1.importForcePlateData_csv(5, force_plate_reach_max_shoulder_contra_trials, forceplate_names, fplate_var_names);
 
-
 % Calculate transformation of the WRAPS2.0 from vicon
 toc
-
 sbj1.vizTrial(trial_no)
 sbj1.vizTrial(2)
 sbj1.vizTrial(3)
 sbj1.vizTrial(4)
 sbj1.vizTrial(5)
-
-
-
 
