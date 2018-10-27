@@ -65,9 +65,7 @@ sbj1.importForcePlateData_csv(5, force_plate_reach_max_shoulder_contra_trials, f
 
 % Calculate transformation of the WRAPS2.0 from vicon
 toc
-sbj1.vizTrial(trial_no)
-sbj1.vizTrial(2)
-sbj1.vizTrial(3)
-sbj1.vizTrial(4)
-sbj1.vizTrial(5)
+sbj1.vizTrial(5, 1)
+sbj1.vizTrial(5, 1000)
+
 
