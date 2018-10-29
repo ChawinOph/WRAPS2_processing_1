@@ -5,6 +5,7 @@ classdef Subject < handle
         vicon_folder_name = 'Vicon data'; % the name in the directory that leads to the
         freq_fplate       = 1000;
         freq_marker       = 100;
+        g                 = [0, 0, -9.81]'; % relative to vicon frame
     end
     
     properties (Access = public)
@@ -12,7 +13,9 @@ classdef Subject < handle
         sbj_index = 0;                          % index number of subject
         sbj_id = '';                            % string of a subject id, e.g., w001.
         sbj_name = '';                          % string of a subject name, e.g., 'Chawin'
+        sbj_gender = ''                         % string of gender ('male' or 'female')
         sbj_anthro_measurement                  % struct of subject measurement data
+        sbj_anthro_table                        % stcuture of data from de Leva table
         sbj_marker_cluster_pos = struct();      % struct of marker clusters on subject
         sbj_landmark_config = struct();         % struct of landmark clusters on subject
         raw_data = struct()                     % stucture of recoded raw data from the vicon
@@ -22,18 +25,21 @@ classdef Subject < handle
     
     methods
         %% Constructor
-        function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names, marker_cluster_pos)
+        function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names, sbj_gender, marker_cluster_pos, anthropomet_table)
             %Subject Construct an instance of this class
             %   Detailed explanation goes here
             this.sbj_folder_name = sbj_folder_names{sbj_index};
             this.sbj_index = sbj_index;
             this.sbj_id = sbj_ids{sbj_index};
             this.sbj_name = sbj_names{sbj_index};
+            this.sbj_gender = sbj_gender{sbj_index};
             this.sbj_anthro_measurement.sbj_id = this.sbj_id;
             this.sbj_anthro_measurement.sbj_name = this.sbj_name;
+            this.sbj_anthro_measurement.sbj_gender = this.sbj_gender;
             this.sbj_anthro_measurement.weight_kg = 72; % kg
             this.sbj_anthro_measurement.height_cm = 173; % cm
             this.importMarkerClusterPos(marker_cluster_pos);
+            this.importAnthtopometTable(anthropomet_table);
         end
         
         %% Member functions
@@ -103,7 +109,7 @@ classdef Subject < handle
             this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace');
             this.calcLandmarkPos(trial_no);
             this.calcSegmentTrans(trial_no);
-            this.calcSegmentCM(trial_no)
+            this.calcSegmentInertia(trial_no)
             disp(' ')
             
         end
@@ -198,6 +204,10 @@ classdef Subject < handle
             this.sbj_landmark_config = marker_cluster_pos(n).landmark_config;
         end
         
+        function importAnthtopometTable(this, anthropomet_table)
+            n = strcmp({anthropomet_table.gender}, this.sbj_gender);
+            this.sbj_anthro_table = anthropomet_table(n).inertia_table;
+        end
         %% Calculate Transformations of marker clusters in a specified trial
         
         function calcTransformation(this, trial_no, vicon_segment_name, cluster_name)
@@ -424,12 +434,24 @@ classdef Subject < handle
             
         end
         
-        function calcSegmentCM(this, trial_no)
+        function calcSegmentInertia(this, trial_no)
             % find landmarks projected on the local segment frame
-            ratio_cm_pelvis_umblc2hip = 0.6115; % male data
-            ratio_cm_lumbar_xp2umblc = 0.4502; %
-            ratio_cm_thorax_sn2xp = 0.2999;
-            ratio_cm_thorax_vt2c7 = 0.5002;
+            anthro_pelvis_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Pelvis');
+            anthro_lumbar_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Lumbar');
+            anthro_thorax_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Thorax');
+            anthro_head_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Head');
+                             
+            cm_pos_ratio_pelvis_umblc2hip = this.sbj_anthro_table(anthro_pelvis_table_indx).cm_pos_ratio  ; % male  0.6115
+            cm_pos_ratio_lumbar_xp2umblc = this.sbj_anthro_table(anthro_lumbar_table_indx).cm_pos_ratio  ; % 0.4502
+            cm_pos_ratio_thorax_sn2xp = this.sbj_anthro_table(anthro_thorax_table_indx).cm_pos_ratio  ; % 0.2999
+            cm_pos_ratio_thorax_vt2c7 = this.sbj_anthro_table(anthro_head_table_indx).cm_pos_ratio  ; % 0.5002
+            
+            mass_ratio_pelvis = this.sbj_anthro_table(anthro_pelvis_table_indx).mass_ratio; % male 0.1117
+            mass_ratio_lumbar = this.sbj_anthro_table(anthro_lumbar_table_indx).mass_ratio; % 0.1633
+            mass_ratio_thorax = this.sbj_anthro_table(anthro_thorax_table_indx).mass_ratio; % 0.1596
+            mass_ratio_head = this.sbj_anthro_table(anthro_head_table_indx).mass_ratio; % 0.0694
+            
+            sbj_mass = this.sbj_anthro_measurement.weight_kg;
             
             indx_r_hip = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'R_HIP');
             indx_l_hip = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'L_HIP');
@@ -458,21 +480,29 @@ classdef Subject < handle
             T_v2thor_dist = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal;
             T_v2head_dist = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal;
             
-            [T_v2cm_pelvis, pos_cm_pelvis] = this.calCMTransforms(T_v2pelv_dist, pos_umblc, pos_m_hip, ratio_cm_pelvis_umblc2hip);
-            [T_v2cm_lumbar, pos_cm_lumbar] = this.calCMTransforms(T_v2lumb_dist, pos_xp, pos_umblc, ratio_cm_lumbar_xp2umblc);
-            [T_v2cm_thorax, pos_cm_thorax] = this.calCMTransforms(T_v2thor_dist, pos_sn, pos_xp, ratio_cm_thorax_sn2xp);
-            [T_v2cm_head, pos_cm_head] = this.calCMTransforms(T_v2head_dist, pos_vt, pos_c7, ratio_cm_thorax_vt2c7);
+            [T_v2cm_pelvis, pos_cm_pelvis] = this.calCMTransforms(T_v2pelv_dist, pos_umblc, pos_m_hip, cm_pos_ratio_pelvis_umblc2hip);
+            [T_v2cm_lumbar, pos_cm_lumbar] = this.calCMTransforms(T_v2lumb_dist, pos_xp, pos_umblc, cm_pos_ratio_lumbar_xp2umblc);
+            [T_v2cm_thorax, pos_cm_thorax] = this.calCMTransforms(T_v2thor_dist, pos_sn, pos_xp, cm_pos_ratio_thorax_sn2xp);
+            [T_v2cm_head, pos_cm_head] = this.calCMTransforms(T_v2head_dist, pos_vt, pos_c7, cm_pos_ratio_thorax_vt2c7);
+              
             
             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2cm_seg = T_v2cm_pelvis;
             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).pos_cm_seg = pos_cm_pelvis;
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).seg_mass = sbj_mass*mass_ratio_pelvis;
+            
             this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2cm_seg = T_v2cm_lumbar;
             this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).pos_cm_seg = pos_cm_lumbar;
+            this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).seg_mass = sbj_mass*mass_ratio_lumbar;
+            
             this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2cm_seg = T_v2cm_thorax;
             this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).pos_cm_seg = pos_cm_thorax;
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).seg_mass =  sbj_mass*mass_ratio_thorax;
+            
             this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2cm_seg = T_v2cm_head;
             this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).pos_cm_seg = pos_cm_head;   
+            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).seg_mass =  sbj_mass*mass_ratio_head;
             
-            disp(['Updated anthropometric segment CMs in trial no. ', num2str(trial_no)])
+            disp(['Updated anthropometric segmental inertia in trial no. ', num2str(trial_no)])
         end
         
         

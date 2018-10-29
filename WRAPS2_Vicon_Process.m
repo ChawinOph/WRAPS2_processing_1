@@ -1,13 +1,14 @@
-%% Process WRAPS 2.0 Data collection
+% Process WRAPS 2.0 Data collection
 clc; clear; close all;
 tic
 %% Setup folder directory
 sbj_folder_names = {'w001_2018-09-18'};
 sbj_idcs = {'w001'};
 sbj_names = {'WRAPS2_Chawin'};
+sbj_gender = {'male'};
 
 load 'marker_cluster_pos.mat'; % can be edited in future like saving the cluster of (virtual) markers for static trials
-
+load 'anthropomet_table'; % can be edited in future like saving the cluster of (virtual) markers for static trials
 %% Setup sorted marker names for each segments (May vary for different subjects)
 pelvis_sorted_marker_names = {'P_Top_R', 'P_Front_L', 'P_Top_L', 'P_Back_L', 'P_Hip_R', 'P_ASIS_R', 'P_ASIS_L', 'P_Hip_L'};
 thorax_sorted_marker_names = {'T_Front_R', 'T_Front_L', 'T_Side_L', 'T_SternalNotch', 'T_C7', 'T_T8_Top', 'T_T8_L', 'T_T8_R', 'T_Xyphoid'};
@@ -45,7 +46,7 @@ force_plate_reach_max_shoulder_contra_trials = {'Max Reach Shoulder Contra01 For
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
-sbj1 = Subject(sbj_index, sbj_folder_names, sbj_idcs, sbj_names, marker_cluster_pos);
+sbj1 = Subject(sbj_index, sbj_folder_names, sbj_idcs, sbj_names, sbj_gender, marker_cluster_pos, anthropomet_table);
 
 %% import data
 sbj1.importMarkerData_csv(trial_no, markers_static_max_flexion_trials, sorted_segment_names, sorted_marker_names);
