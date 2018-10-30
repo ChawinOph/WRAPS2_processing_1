@@ -26,7 +26,7 @@ classdef Subject < handle
     methods
         %% Constructor
         function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names, sbj_gender, marker_cluster_pos, anthropomet_table)
-            %Subject Construct an instance of this class
+            % Subject Construct an instance of this class
             %   Detailed explanation goes here
             this.sbj_folder_name = sbj_folder_names{sbj_index};
             this.sbj_index = sbj_index;
@@ -39,10 +39,11 @@ classdef Subject < handle
             this.sbj_anthro_measurement.weight_kg = 72; % kg
             this.sbj_anthro_measurement.height_cm = 173; % cm
             this.importMarkerClusterPos(marker_cluster_pos);
-            this.importAnthtopometTable(anthropomet_table);
+            this.importAnthropometTable(anthropomet_table);
         end
         
         %% Member functions
+        
         
         %% Import data
         function importMarkerData_csv(this, trial_no, trial_file_names, sorted_segment_names, sorted_marker_names, removed_marker_names)
@@ -149,7 +150,6 @@ classdef Subject < handle
             
             % get rid of empty cells
             headernames = headernames(~cellfun('isempty',headernames));
-            
             this.raw_data(trial_no).fplate_trial_name =  trial_file_names{this.sbj_index};
             
             % store data base on the force plate and variable names
@@ -204,7 +204,7 @@ classdef Subject < handle
             this.sbj_landmark_config = marker_cluster_pos(n).landmark_config;
         end
         
-        function importAnthtopometTable(this, anthropomet_table)
+        function importAnthropometTable(this, anthropomet_table)
             n = strcmp({anthropomet_table.gender}, this.sbj_gender);
             this.sbj_anthro_table = anthropomet_table(n).inertia_table;
         end
