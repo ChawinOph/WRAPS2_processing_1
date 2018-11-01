@@ -25,7 +25,8 @@ classdef Subject < handle
     
     methods
         %% Constructor
-        function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names, sbj_gender, marker_cluster_pos, anthropomet_table)
+        function this = Subject(sbj_index, sbj_folder_names, sbj_ids, sbj_names, sbj_gender, ... 
+                marker_cluster_pos, anthropomet_table, sbj_measurment_table)
             % Subject Construct an instance of this class
             %   Detailed explanation goes here
             this.sbj_folder_name = sbj_folder_names{sbj_index};
@@ -40,6 +41,7 @@ classdef Subject < handle
             this.sbj_anthro_measurement.height_cm = 173; % cm
             this.importMarkerClusterPos(marker_cluster_pos);
             this.importAnthropometTable(anthropomet_table);
+            this.importMeasurementTable(sbj_measurment_table);
         end
         
         %% Member functions
@@ -208,6 +210,11 @@ classdef Subject < handle
             n = strcmp({anthropomet_table.gender}, this.sbj_gender);
             this.sbj_anthro_table = anthropomet_table(n).inertia_table;
         end
+        
+        function importMeasurementTable(this, sbj_measurment_table)
+            n = strcmp({sbj_measurment_table.sbj_id}, this.sbj_id);
+            this.sbj_anthro_measurement.measurement_table = sbj_measurment_table(n).measurement_table;
+        end
         %% Calculate Transformations of marker clusters in a specified trial
         
         function calcTransformation(this, trial_no, vicon_segment_name, cluster_name)
@@ -278,7 +285,6 @@ classdef Subject < handle
         %% Calculate landmark positions
         
         function calcLandmarkPos(this, trial_no)
-            % pelvis landmark
             this.sbj_anthro(trial_no).trial_name = this.raw_data(trial_no).marker_trial_name;
             this.sbj_anthro(trial_no).torso_landmark_names = {'UMBLC', 'R_ASIS', 'L_ASIS', 'R_PSIS', 'L_PSIS', 'R_HIP', 'L_HIP', 'SN', 'C7', 'XP', 'T8', 'VT', 'OC'};
             this.sbj_anthro(trial_no).landmark_pos = zeros(size(this.raw_data(trial_no).marker_data(1).marker_pos,1), 3, 12);
@@ -287,6 +293,19 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(2).segment_name = 'Lumbar';
             this.sbj_anthro(trial_no).body_segment_transform(3).segment_name = 'Thorax';
             this.sbj_anthro(trial_no).body_segment_transform(4).segment_name = 'Head';
+            % other body part without markers
+            this.sbj_anthro(trial_no).body_segment_transform(5).segment_name = 'UpperArm_R';
+            this.sbj_anthro(trial_no).body_segment_transform(6).segment_name = 'UpperArm_L';
+            this.sbj_anthro(trial_no).body_segment_transform(7).segment_name = 'Forearm_R';
+            this.sbj_anthro(trial_no).body_segment_transform(8).segment_name = 'Forearm_L';
+            this.sbj_anthro(trial_no).body_segment_transform(9).segment_name = 'Hand_R';
+            this.sbj_anthro(trial_no).body_segment_transform(10).segment_name = 'Hand_L';
+            this.sbj_anthro(trial_no).body_segment_transform(11).segment_name = 'Thigh_R';
+            this.sbj_anthro(trial_no).body_segment_transform(12).segment_name = 'Thigh_L';
+            this.sbj_anthro(trial_no).body_segment_transform(13).segment_name = 'Shank_R';
+            this.sbj_anthro(trial_no).body_segment_transform(14).segment_name = 'Shank_L';
+            this.sbj_anthro(trial_no).body_segment_transform(15).segment_name = 'Foot_R';
+            this.sbj_anthro(trial_no).body_segment_transform(16).segment_name = 'Foot_L';
             
             % get the pelvis landmark position
             pelvis_cluster_indx = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
@@ -364,8 +383,10 @@ classdef Subject < handle
             origin_pelvis_distal = (pos_m_psis + pos_m_asis)/2; % this is technically distal pelvis frame since the proximal is align with the vicon frame
             
             pelvis_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Pelvis'));
-            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim = repmat(eye(4), 1, 1, length(origin_pelvis_distal));
-            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal = this.createTransforms(origin_pelvis_distal, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim = ...
+                repmat(eye(4), 1, 1, length(origin_pelvis_distal));
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal = ...
+                this.createTransforms(origin_pelvis_distal, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
             
             %% lumber using 'origin_pelvis', 'XP', 'T8'
             indx_xp = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'XP');
@@ -385,9 +406,11 @@ classdef Subject < handle
             j_hat_lumbar = cross(k_hat_lumbar, i_hat_lumbar, 2);
             
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
-            this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_proxim = this.createTransforms(origin_lumbar_proxim, i_hat_lumbar, j_hat_lumbar, k_hat_lumbar);
-            this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_distal = this.createTransforms(origin_lumbar_distal, i_hat_lumbar, j_hat_lumbar, k_hat_lumbar);
-                        
+            this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_proxim = ...
+                this.createTransforms(origin_lumbar_proxim, i_hat_lumbar, j_hat_lumbar, k_hat_lumbar);
+            this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_distal = ...
+                this.createTransforms(origin_lumbar_distal, i_hat_lumbar, j_hat_lumbar, k_hat_lumbar);
+            
             %% thorax using 'SN', 'C7', 'XP', 'T8'
             indx_sn = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'SN');
             indx_c7 = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'C7');
@@ -406,8 +429,10 @@ classdef Subject < handle
             j_hat_thorax = cross(k_hat_thorax, i_hat_thorax, 2);
             
             thorax_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Thorax'));
-            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_proxim = this.createTransforms(origin_thorax_proxim, i_hat_thorax, j_hat_thorax, k_hat_thorax);
-            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal = this.createTransforms(origin_thorax_distal, i_hat_thorax, j_hat_thorax, k_hat_thorax);
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_proxim = ...
+                this.createTransforms(origin_thorax_proxim, i_hat_thorax, j_hat_thorax, k_hat_thorax);
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal = ...
+                this.createTransforms(origin_thorax_distal, i_hat_thorax, j_hat_thorax, k_hat_thorax);
             
             %% head using 'SN', 'C7', 'VT'
             indx_vt = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'VT');
@@ -427,10 +452,113 @@ classdef Subject < handle
             j_hat_head = cross(k_hat_head, i_hat_head, 2);
             
             head_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Head'));
-            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_proxim = this.createTransforms(origin_head_proxim, i_hat_head, j_hat_head, k_hat_head);
-            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal = this.createTransforms(origin_head_distal, i_hat_head, j_hat_head, k_hat_head);
-                      
+            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_proxim = ...
+                this.createTransforms(origin_head_proxim, i_hat_head, j_hat_head, k_hat_head);
+            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal = ...
+                this.createTransforms(origin_head_distal, i_hat_head, j_hat_head, k_hat_head);
+            
             disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])
+            
+            %% upper Arms transformation using the thorax coordinate frame
+            upper_arm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_R'));
+            upper_arm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_L'));
+            
+            shoulder_width_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'shoulder_width');
+            z_sn2shouder_center_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'sternal2shoulder_center');
+            upper_arm_length_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'upper_arm');
+            
+            shoulder_width = this.sbj_anthro_measurement.measurement_table(shoulder_width_indx).length_mm;
+            z_sn2shouder_center = this.sbj_anthro_measurement.measurement_table(z_sn2shouder_center_indx).length_mm;
+            l_upper_arm = this.sbj_anthro_measurement.measurement_table(upper_arm_length_indx).length_mm;
+            
+            % get the calculated thorax distal frame
+            T_v2thorax_distal = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal;
+            
+            trans_thorax2shdr_R_vec_mat = repmat([shoulder_width/2, 0, -z_sn2shouder_center], length(T_v2thorax_distal), 1);
+            trans_thorax2shdr_L_vec_mat = repmat([-shoulder_width/2, 0, -z_sn2shouder_center], length(T_v2thorax_distal), 1);
+            
+            T_thorax_distal2thorax_shdr_joint_R = this.createTransformsTranslation(trans_thorax2shdr_R_vec_mat);
+            T_thorax_distal2thorax_shdr_joint_L = this.createTransformsTranslation(trans_thorax2shdr_L_vec_mat);   
+            
+            T_v2thorax_shdr_R = this.multiplyTransforms(T_v2thorax_distal, T_thorax_distal2thorax_shdr_joint_R);
+            T_v2thorax_shdr_L = this.multiplyTransforms(T_v2thorax_distal, T_thorax_distal2thorax_shdr_joint_L);
+                       
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_r = T_v2thorax_shdr_R;
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_l = T_v2thorax_shdr_L;
+            
+            % specify the shoulder joint rotation
+            trial_length = length(T_v2thorax_shdr_R);
+            T_thorax_shdr_R2uarm_R_proxim  = ...
+                this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), zeros(trial_length, 1)); % no rotation
+            T_thorax_shdr_L2uarm_L_proxim  = ...
+                this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), pi/2*ones(trial_length, 1)); % try rotation around x by +pi/2
+            
+            T_v2uarm_R_proxim = this.multiplyTransforms(T_v2thorax_shdr_R, T_thorax_shdr_R2uarm_R_proxim);
+            T_v2uarm_L_proxim = this.multiplyTransforms(T_v2thorax_shdr_L, T_thorax_shdr_L2uarm_L_proxim);
+            
+            T_uarm_R_proxim2uarm_R_distal = this.createTransformsTranslation(repmat([0, 0, -l_upper_arm], trial_length, 1));
+            T_uarm_L_proxim2uarm_L_distal = this.createTransformsTranslation(repmat([0, 0, -l_upper_arm], trial_length, 1));
+            
+            T_v2uarm_R_distal = this.multiplyTransforms(T_v2uarm_R_proxim, T_uarm_R_proxim2uarm_R_distal);
+            T_v2uarm_L_distal = this.multiplyTransforms(T_v2uarm_L_proxim, T_uarm_L_proxim2uarm_L_distal);
+            
+            % store proximal and distal transforms into the structure 
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2seg_proxim = T_v2uarm_R_proxim ;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2seg_distal = T_v2uarm_R_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2seg_proxim = T_v2uarm_L_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2seg_distal = T_v2uarm_L_distal;
+            
+            %% forearm 
+            forearm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_R'));
+            forearm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_L'));
+            
+            forearm_length_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'forearm');
+            l_forearm = this.sbj_anthro_measurement.measurement_table(forearm_length_indx).length_mm;
+            
+            % elbow rotation (restricted in x axis)
+            T_uarm_R_distal2farm_R_proxim = this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), pi/2*ones(trial_length, 1)); % no rotation
+            T_uarm_L_distal2farm_L_proxim = this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), zeros(trial_length, 1)); % no rotation
+
+            T_v2farm_R_proxim = this.multiplyTransforms(T_v2uarm_R_distal, T_uarm_R_distal2farm_R_proxim);
+            T_v2farm_L_proxim = this.multiplyTransforms(T_v2uarm_L_distal, T_uarm_L_distal2farm_L_proxim);
+            
+            T_farm_R_proxim2farm_R_distal = this.createTransformsTranslation(repmat([0, 0, -l_forearm], trial_length, 1)); 
+            T_farm_L_proxim2farm_L_distal = this.createTransformsTranslation(repmat([0, 0, -l_forearm], trial_length, 1));
+            
+            T_v2farm_R_distal = this.multiplyTransforms(T_v2farm_R_proxim, T_farm_R_proxim2farm_R_distal);
+            T_v2farm_L_distal = this.multiplyTransforms(T_v2farm_L_proxim, T_farm_L_proxim2farm_L_distal);
+            
+            % store proximal and distal transforms into the structure 
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_proxim = T_v2farm_R_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_distal = T_v2farm_R_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_proxim = T_v2farm_L_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_distal = T_v2farm_L_distal;
+            
+            %% hand
+            hand_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_R'));
+            hand_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_L'));
+            
+            hand_length_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'hand');
+            l_hand = this.sbj_anthro_measurement.measurement_table(hand_length_indx).length_mm;
+            
+            % wrist rotation (restricted in y axis)
+            T_farm_R_distal2hand_R_proxim = this.createRotationAxisAngle(repmat([0 1 0], trial_length, 1), pi/2*ones(trial_length, 1)); 
+            T_farm_L_distal2hand_L_proxim = this.createRotationAxisAngle(repmat([0 1 0], trial_length, 1), zeros(trial_length, 1));
+            
+            T_v2hand_R_proxim = this.multiplyTransforms(T_v2farm_R_distal, T_farm_R_distal2hand_R_proxim);
+            T_v2hand_L_proxim = this.multiplyTransforms(T_v2farm_L_distal, T_farm_L_distal2hand_L_proxim);
+            
+            T_hand_R_proxim2hand_R_distal = this.createTransformsTranslation(repmat([0, 0, -l_hand], trial_length, 1)); 
+            T_hand_L_proxim2hand_L_distal = this.createTransformsTranslation(repmat([0, 0, -l_hand], trial_length, 1));
+            
+            T_v2hand_R_distal = this.multiplyTransforms(T_v2hand_R_proxim, T_hand_R_proxim2hand_R_distal);
+            T_v2hand_L_distal = this.multiplyTransforms(T_v2hand_L_proxim, T_hand_L_proxim2hand_L_distal);
+            
+            % store proximal and distal transforms into the structure
+            this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_proxim = T_v2hand_R_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_distal = T_v2hand_R_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_proxim = T_v2hand_L_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal = T_v2hand_L_distal;
             
         end
         
@@ -440,16 +568,34 @@ classdef Subject < handle
             anthro_lumbar_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Lumbar');
             anthro_thorax_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Thorax');
             anthro_head_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Head');
-                             
+            anthro_uarm_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'UpperArm');
+            anthro_farm_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Forearm');
+            anthro_hand_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Hand');
+            anthro_thigh_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Thigh');
+            anthro_shank_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Shank');
+            anthro_foot_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Foot');
+            
             cm_pos_ratio_pelvis_umblc2hip = this.sbj_anthro_table(anthro_pelvis_table_indx).cm_pos_ratio  ; % male  0.6115
             cm_pos_ratio_lumbar_xp2umblc = this.sbj_anthro_table(anthro_lumbar_table_indx).cm_pos_ratio  ; % 0.4502
             cm_pos_ratio_thorax_sn2xp = this.sbj_anthro_table(anthro_thorax_table_indx).cm_pos_ratio  ; % 0.2999
-            cm_pos_ratio_thorax_vt2c7 = this.sbj_anthro_table(anthro_head_table_indx).cm_pos_ratio  ; % 0.5002
+            cm_pos_ratio_head_vt2c7 = this.sbj_anthro_table(anthro_head_table_indx).cm_pos_ratio  ; % 0.5002
+            cm_pos_ratio_uarm_prox2dist = this.sbj_anthro_table(anthro_uarm_table_indx).cm_pos_ratio  ; % 0.5772
+            cm_pos_ratio_farm_prox2dist = this.sbj_anthro_table(anthro_farm_table_indx).cm_pos_ratio  ; % 0.4574
+            cm_pos_ratio_hand_prox2dist = this.sbj_anthro_table(anthro_hand_table_indx).cm_pos_ratio  ; % 0.3624
+            cm_pos_ratio_thigh_prox2dist = this.sbj_anthro_table(anthro_thigh_table_indx).cm_pos_ratio  ; % 0.4095
+            cm_pos_ratio_shank_prox2dist = this.sbj_anthro_table(anthro_shank_table_indx).cm_pos_ratio  ; % 0.4459
+            cm_pos_ratio_foot_prox2dist = this.sbj_anthro_table(anthro_foot_table_indx).cm_pos_ratio  ; % 0.4415
             
             mass_ratio_pelvis = this.sbj_anthro_table(anthro_pelvis_table_indx).mass_ratio; % male 0.1117
             mass_ratio_lumbar = this.sbj_anthro_table(anthro_lumbar_table_indx).mass_ratio; % 0.1633
             mass_ratio_thorax = this.sbj_anthro_table(anthro_thorax_table_indx).mass_ratio; % 0.1596
             mass_ratio_head = this.sbj_anthro_table(anthro_head_table_indx).mass_ratio; % 0.0694
+            mass_ratio_uarm = this.sbj_anthro_table(anthro_uarm_table_indx).mass_ratio; % 0.0271
+            mass_ratio_farm = this.sbj_anthro_table(anthro_farm_table_indx).mass_ratio; % 0.0162
+            mass_ratio_hand = this.sbj_anthro_table(anthro_hand_table_indx).mass_ratio; % 0.0061
+            mass_ratio_thigh = this.sbj_anthro_table(anthro_thigh_table_indx).mass_ratio; % 0.1416
+            mass_ratio_shank = this.sbj_anthro_table(anthro_shank_table_indx).mass_ratio; % 0.0433
+            mass_ratio_foot = this.sbj_anthro_table(anthro_foot_table_indx).mass_ratio; % 0.0137
             
             sbj_mass = this.sbj_anthro_measurement.weight_kg;
             
@@ -474,17 +620,22 @@ classdef Subject < handle
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
             thorax_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Thorax'));
             head_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Head'));
+            upper_arm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_R'));
+            upper_arm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_L'));
+            forearm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_R'));
+            forearm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_L'));
+            hand_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_R'));
+            hand_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_L'));
             
             T_v2pelv_dist = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal;
             T_v2lumb_dist = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_distal;
             T_v2thor_dist = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal;
             T_v2head_dist = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal;
             
-            [T_v2cm_pelvis, pos_cm_pelvis] = this.calCMTransforms(T_v2pelv_dist, pos_umblc, pos_m_hip, cm_pos_ratio_pelvis_umblc2hip);
-            [T_v2cm_lumbar, pos_cm_lumbar] = this.calCMTransforms(T_v2lumb_dist, pos_xp, pos_umblc, cm_pos_ratio_lumbar_xp2umblc);
-            [T_v2cm_thorax, pos_cm_thorax] = this.calCMTransforms(T_v2thor_dist, pos_sn, pos_xp, cm_pos_ratio_thorax_sn2xp);
-            [T_v2cm_head, pos_cm_head] = this.calCMTransforms(T_v2head_dist, pos_vt, pos_c7, cm_pos_ratio_thorax_vt2c7);
-              
+            [T_v2cm_pelvis, pos_cm_pelvis] = this.calcCMTransforms(T_v2pelv_dist, pos_umblc, pos_m_hip, cm_pos_ratio_pelvis_umblc2hip);
+            [T_v2cm_lumbar, pos_cm_lumbar] = this.calcCMTransforms(T_v2lumb_dist, pos_xp, pos_umblc, cm_pos_ratio_lumbar_xp2umblc);
+            [T_v2cm_thorax, pos_cm_thorax] = this.calcCMTransforms(T_v2thor_dist, pos_sn, pos_xp, cm_pos_ratio_thorax_sn2xp);
+            [T_v2cm_head, pos_cm_head] = this.calcCMTransforms(T_v2head_dist, pos_vt, pos_c7, cm_pos_ratio_head_vt2c7);
             
             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2cm_seg = T_v2cm_pelvis;
             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).pos_cm_seg = pos_cm_pelvis;
@@ -499,17 +650,66 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).seg_mass =  sbj_mass*mass_ratio_thorax;
             
             this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2cm_seg = T_v2cm_head;
-            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).pos_cm_seg = pos_cm_head;   
+            this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).pos_cm_seg = pos_cm_head;
             this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).seg_mass =  sbj_mass*mass_ratio_head;
             
+            %% calculate limb CoM transformation 
+            T_v2uarm_R_proxim = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2seg_proxim; 
+            T_v2uarm_L_proxim = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2seg_proxim;
+            T_v2uarm_R_distal = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2seg_distal; 
+            T_v2uarm_L_distal = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2seg_distal;
+            
+            T_v2farm_R_proxim = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_proxim;
+            T_v2farm_L_proxim = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_proxim;
+            T_v2farm_R_distal = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_distal;
+            T_v2farm_L_distal = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_distal;
+            
+            T_v2hand_R_proxim = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_proxim;
+            T_v2hand_L_proxim = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_proxim;
+            T_v2hand_R_distal = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_distal;
+            T_v2hand_L_distal = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal;
+            
+            % proximal joints are superior frames this case
+            [T_v2cm_uarm_R, pos_cm_uarm_R] = this.calcLimbCMTranforms(T_v2uarm_R_proxim, T_v2uarm_R_distal, cm_pos_ratio_uarm_prox2dist);
+            [T_v2cm_uarm_L, pos_cm_uarm_L] = this.calcLimbCMTranforms(T_v2uarm_L_proxim, T_v2uarm_L_distal, cm_pos_ratio_uarm_prox2dist);
+            [T_v2cm_farm_R, pos_cm_farm_R] = this.calcLimbCMTranforms(T_v2farm_R_proxim, T_v2farm_R_distal, cm_pos_ratio_farm_prox2dist);
+            [T_v2cm_farm_L, pos_cm_farm_L] = this.calcLimbCMTranforms(T_v2farm_L_proxim, T_v2farm_L_distal, cm_pos_ratio_farm_prox2dist);
+            [T_v2cm_hand_R, pos_cm_hand_R] = this.calcLimbCMTranforms(T_v2hand_R_proxim, T_v2hand_R_distal, cm_pos_ratio_hand_prox2dist);
+            [T_v2cm_hand_L, pos_cm_hand_L] = this.calcLimbCMTranforms(T_v2hand_L_proxim, T_v2hand_L_distal, cm_pos_ratio_hand_prox2dist);
+            
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2cm_seg = T_v2cm_uarm_R;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).pos_cm_seg = pos_cm_uarm_R;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).seg_mass = sbj_mass*mass_ratio_uarm;           
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2cm_seg = T_v2cm_uarm_L;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).pos_cm_seg = pos_cm_uarm_L;
+            this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).seg_mass = sbj_mass*mass_ratio_uarm;
+            
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2cm_seg = T_v2cm_farm_R;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).pos_cm_seg = pos_cm_farm_R;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).seg_mass = sbj_mass*mass_ratio_farm;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2cm_seg = T_v2cm_farm_L;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).pos_cm_seg = pos_cm_farm_L;
+            this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).seg_mass = sbj_mass*mass_ratio_farm;
+            
+            this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2cm_seg = T_v2cm_hand_R;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).pos_cm_seg = pos_cm_hand_R;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).seg_mass = sbj_mass*mass_ratio_hand;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2cm_seg = T_v2cm_hand_L;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).pos_cm_seg = pos_cm_hand_L;
+            this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).seg_mass = sbj_mass*mass_ratio_hand;
+                   
             disp(['Updated anthropometric segmental inertia in trial no. ', num2str(trial_no)])
         end
-        
-        
+                
         %% Transformation Functions
         function T = T_translate(~, vec)
             T = eye(4);
             T(1:3,4) = vec;
+        end
+        
+        function S = skew(~, v)
+            % vec: 3 x 1 vector column
+            S = [0 -v(3) v(2); v(3) 0 -v(1); -v(2) v(1) 0];
         end
         
         function unit_V = unitVecMat(~, vec_mat, vec_dim)
@@ -526,7 +726,20 @@ classdef Subject < handle
             T_3dmat(1:3, 4, :) = reshape(origin_mat', 3, 1, []);
         end
         
+        function T_3dmat = createRotationAxisAngle(this, axis_mat, angle)
+            % axis_mat: n x 3 double array
+            % angle: 1 x n double array (rad)
+            T_3dmat = repmat(eye(4), 1, 1, length(axis_mat));
+            w = this.unitVecMat(axis_mat, 2); % normalize the axis vectors
+            for i = 1:length(axis_mat)
+                c = cos(angle(i)); s = sin(angle(i)); v = 1 - c;
+                % I3*c + skew(w)*s + wT*w*v
+                T_3dmat(1:3, 1:3, i) = eye(3)*c + this.skew(w(i, :))*s + w(i, :)'*w(i, :)*v;
+            end
+        end
+        
         function T_3dmat = createTransformsTranslation(~, vec_mat)
+            % vec_mat: n x 3 double array
             T_3dmat = repmat(eye(4), 1, 1, length(vec_mat));
             T_3dmat(1:3, 4, :) = reshape(vec_mat', 3, 1, []);
         end
@@ -553,24 +766,40 @@ classdef Subject < handle
             pos_wrt_new_frame = reshape(T_pos_wrt_new_frame(1:3, 4, :), 3, [])';
         end
         
-         function z_pos_wrt_new_frame = calcZPosInNewFrame(this, T_v2new_frame, pos_wrt_vicon)
+        function z_pos_wrt_new_frame = calcZPosInNewFrame(this, T_v2new_frame, pos_wrt_vicon)
             T_pos_wrt_vicon = this.createTransformsTranslation(pos_wrt_vicon);
             T_pos_wrt_new_frame = this.multiplyTransforms(this.invTransformsMat(T_v2new_frame), T_pos_wrt_vicon);
             z_pos_wrt_new_frame = reshape(T_pos_wrt_new_frame(1:3, 4, :), 3, [])';
             z_pos_wrt_new_frame(:, 1:2) = 0;
-         end
+        end
         
-         function [T_v2cm_seg, pos_cm_seg] = calCMTransforms(this, T_v2distal_frame, pos_sup_landmark, pos_inf_landmark, ratio_sup2inf)
-             z_sup_wrt_distal_frame = this.calcZPosInNewFrame(T_v2distal_frame, pos_sup_landmark);
-             z_inf_wrt_distal_frame = this.calcZPosInNewFrame(T_v2distal_frame, pos_inf_landmark);
-             T_dist_frame2z_sup = this.createTransformsTranslation(z_sup_wrt_distal_frame);
-             T_v2z_sup = this.multiplyTransforms(T_v2distal_frame, T_dist_frame2z_sup);            
-             z_sup2cm_seg = ratio_sup2inf*(z_inf_wrt_distal_frame - z_sup_wrt_distal_frame);             
-             T_z_sup2cm_seg = this.createTransformsTranslation(z_sup2cm_seg);
-             T_v2cm_seg = this.multiplyTransforms(T_v2z_sup , T_z_sup2cm_seg);
-             % get only the position vectors
-             pos_cm_seg = reshape(T_v2cm_seg(1:3, 4, :), 3, [])';
-         end
+        function [T_v2cm_seg, pos_cm_seg] = calcCMTransforms(this, T_v2sup_frame, pos_sup_landmark, pos_inf_landmark, ratio_sup2inf)
+            z_sup_wrt_sup_frame = this.calcZPosInNewFrame(T_v2sup_frame, pos_sup_landmark);
+            z_inf_wrt_sup_frame = this.calcZPosInNewFrame(T_v2sup_frame, pos_inf_landmark);
+            T_sup_frame2z_sup = this.createTransformsTranslation(z_sup_wrt_sup_frame);
+            T_v2z_sup = this.multiplyTransforms(T_v2sup_frame, T_sup_frame2z_sup);
+            z_sup2cm_seg = ratio_sup2inf*(z_inf_wrt_sup_frame - z_sup_wrt_sup_frame);
+            T_z_sup2cm_seg = this.createTransformsTranslation(z_sup2cm_seg);
+            T_v2cm_seg = this.multiplyTransforms(T_v2z_sup , T_z_sup2cm_seg);
+            % get only the position vectors
+            pos_cm_seg = reshape(T_v2cm_seg(1:3, 4, :), 3, [])';
+        end
+        
+        function [T_v2cm_seg, pos_cm_seg] = calcLimbCMTranforms(this, T_v2sup_frame, T_v2inf_frame, ratio_sup2inf)
+            % get origins of both ends
+            sup_joint_pos = reshape(T_v2sup_frame(1:3, 4, :), 3, [])';
+            inf_joint_pos = reshape(T_v2inf_frame(1:3, 4, :), 3, [])';
+            
+            z_sup_wrt_sup_frame = this.calcZPosInNewFrame(T_v2sup_frame, sup_joint_pos);
+            z_inf_wrt_sup_frame = this.calcZPosInNewFrame(T_v2sup_frame, inf_joint_pos);
+            T_sup_frame2z_sup = this.createTransformsTranslation(z_sup_wrt_sup_frame);
+            T_v2z_sup = this.multiplyTransforms(T_v2sup_frame, T_sup_frame2z_sup);
+            z_sup2cm_seg = ratio_sup2inf*(z_inf_wrt_sup_frame - z_sup_wrt_sup_frame);
+            T_z_sup2cm_seg = this.createTransformsTranslation(z_sup2cm_seg);
+            T_v2cm_seg = this.multiplyTransforms(T_v2z_sup , T_z_sup2cm_seg);
+            % get only the position vectors
+            pos_cm_seg = reshape(T_v2cm_seg(1:3, 4, :), 3, [])';
+        end
         
         %% Visualization
         function plotCoPvsTime(this, trial_no, plate_name)
@@ -608,78 +837,204 @@ classdef Subject < handle
         end
         
         function plotSegmentTrans(this, trial_no, viz_time_step)
+            coordinate_scale = 50;
             % pelvis
             pelvis_segment_indx = strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Pelvis');
-%             Tp1 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            %             Tp1 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tp2 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal(:,:, viz_time_step);
-%             this.plotCoordinateTransform(Tp1, 150)
-            this.plotCoordinateTransform(Tp2, 150)
+            %             this.plotCoordinateTransform(Tp1, 150)
+            this.plotCoordinateTransform(Tp2, coordinate_scale)
             
             % lumbar
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
             Tl1 = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tl2 = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2seg_distal(:,:, viz_time_step);
-            this.plotCoordinateTransform(Tl1, 150)
-            this.plotCoordinateTransform(Tl2, 150)
+            this.plotCoordinateTransform(Tl1, coordinate_scale)
+            this.plotCoordinateTransform(Tl2, coordinate_scale)
             % plot segment line
-            lumber_line = [Tl1(1:3,4),Tl2(1:3,4)];
+            lumber_line = [Tl1(1:3, 4),Tl2(1:3, 4)];
             plot3(lumber_line(1, :), lumber_line(2, :), lumber_line(3, :), 'k:');
             
             % thorax
             thorax_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Thorax'));
             Tt1 = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tt2 = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal(:,:, viz_time_step);
-            this.plotCoordinateTransform(Tt1, 150)
-            this.plotCoordinateTransform(Tt2, 150)
-             % plot segment line
-            thorax_line = [Tt1(1:3,4),Tt2(1:3,4)];
+            Tshldr_r = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_r(:,:, viz_time_step);
+            Tshldr_l = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_l(:,:, viz_time_step);              
+            this.plotCoordinateTransform(Tt1, coordinate_scale)
+            this.plotCoordinateTransform(Tt2, coordinate_scale)
+            this.plotCoordinateTransform(Tshldr_r, coordinate_scale)
+            this.plotCoordinateTransform(Tshldr_l, coordinate_scale)
+            % plot segment line
+            thorax_line = [Tt1(1:3, 4),Tt2(1:3, 4)];
+            thorax2shldr_r_line = [Tt2(1:3, 4),Tshldr_r(1:3, 4)];
+            thorax2shldr_l_line = [Tt2(1:3, 4),Tshldr_l(1:3, 4)];
             plot3(thorax_line(1, :), thorax_line(2, :), thorax_line(3, :), 'k:');
+            plot3(thorax2shldr_r_line(1, :), thorax2shldr_r_line(2, :), thorax2shldr_r_line(3, :), 'k:');
+            plot3(thorax2shldr_l_line(1, :), thorax2shldr_l_line(2, :), thorax2shldr_l_line(3, :), 'k:');
+            
+            % upperarm
+            uarm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_R'));
+            uarm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_L'));
+            T_uarm_r_prox = this.sbj_anthro(trial_no).body_segment_transform(uarm_r_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_uarm_l_prox = this.sbj_anthro(trial_no).body_segment_transform(uarm_l_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_uarm_r_dist = this.sbj_anthro(trial_no).body_segment_transform(uarm_r_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            T_uarm_l_dist = this.sbj_anthro(trial_no).body_segment_transform(uarm_l_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            this.plotCoordinateTransform(T_uarm_r_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_uarm_l_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_uarm_r_dist, coordinate_scale)
+            this.plotCoordinateTransform(T_uarm_l_dist, coordinate_scale)
+            % plot segment lines
+            uram_r_line = [T_uarm_r_prox(1:3, 4), T_uarm_r_dist(1:3, 4)];
+            uram_l_line = [T_uarm_l_prox(1:3, 4), T_uarm_l_dist(1:3, 4)];
+            plot3(uram_r_line(1, :), uram_r_line(2, :), uram_r_line(3, :), 'k:');
+            plot3(uram_l_line(1, :), uram_l_line(2, :), uram_l_line(3, :), 'k:');
+            
+            % forearm
+            forearm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_R'));
+            forearm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_L'));
+            T_farm_r_prox = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_farm_l_prox = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_farm_r_dist = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            T_farm_l_dist = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            this.plotCoordinateTransform(T_farm_r_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_farm_l_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_farm_r_dist, coordinate_scale)
+            this.plotCoordinateTransform(T_farm_l_dist, coordinate_scale)
+            % plot segment lines
+            fram_r_line = [T_farm_r_prox(1:3, 4), T_farm_r_dist(1:3, 4)];
+            fram_l_line = [T_farm_l_prox(1:3, 4), T_farm_l_dist(1:3, 4)];
+            plot3(fram_r_line(1, :), fram_r_line(2, :), fram_r_line(3, :), 'k:');
+            plot3(fram_l_line(1, :), fram_l_line(2, :), fram_l_line(3, :), 'k:');
+            
+            % hand
+            hand_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_R'));
+            hand_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_L'));
+            T_hand_r_prox = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_hand_l_prox = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            T_hand_r_dist = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            T_hand_l_dist = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            this.plotCoordinateTransform(T_hand_r_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_hand_l_prox, coordinate_scale)
+            this.plotCoordinateTransform(T_hand_r_dist, coordinate_scale)
+            this.plotCoordinateTransform(T_hand_l_dist, coordinate_scale)
+             % plot segment lines
+            hand_r_line = [T_hand_r_prox(1:3, 4), T_hand_r_dist(1:3, 4)];
+            hand_l_line = [T_hand_l_prox(1:3, 4), T_hand_l_dist(1:3, 4)];
+            plot3(hand_r_line(1, :), hand_r_line(2, :), hand_r_line(3, :), 'k:');
+            plot3(hand_l_line(1, :), hand_l_line(2, :), hand_l_line(3, :), 'k:');
             
             % head
             head_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Head'));
             Th1 = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Th2 = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal(:,:, viz_time_step);
-            this.plotCoordinateTransform(Th1, 150)
-            this.plotCoordinateTransform(Th2, 150)
+            this.plotCoordinateTransform(Th1, coordinate_scale)
+            this.plotCoordinateTransform(Th2, coordinate_scale)
             % plot segment line
-            head_line = [Th1(1:3,4),Th2(1:3,4)];
+            head_line = [Th1(1:3, 4),Th2(1:3, 4)];
             plot3(head_line(1, :), head_line(2, :), head_line(3, :), 'k:');
+            
             
         end
         
         function plotSegmentCM(this, trial_no, viz_time_step)
+            coordinate_scale_CM = 25;
+            marker_full_size = 2000;
+            
+            anthro_pelvis_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Pelvis');
+            anthro_lumbar_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Lumbar');
+            anthro_thorax_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Thorax');
+            anthro_head_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Head');
+            anthro_uarm_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'UpperArm');
+            anthro_farm_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Forearm');
+            anthro_hand_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Hand');
+            anthro_thigh_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Thigh');
+            anthro_shank_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Shank');
+            anthro_foot_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Foot');
+            
             pelvis_segment_indx = strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Pelvis');
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
             thorax_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Thorax'));
             head_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Head'));
+            upper_arm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_R'));
+            upper_arm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_L'));
+            forearm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_R'));
+            forearm_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Forearm_L'));
+            hand_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_R'));
+            hand_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Hand_L'));
+            
+            mass_ratio_pelvis = this.sbj_anthro_table(anthro_pelvis_table_indx).mass_ratio; % male 0.1117
+            mass_ratio_lumbar = this.sbj_anthro_table(anthro_lumbar_table_indx).mass_ratio; % 0.1633
+            mass_ratio_thorax = this.sbj_anthro_table(anthro_thorax_table_indx).mass_ratio; % 0.1596
+            mass_ratio_head = this.sbj_anthro_table(anthro_head_table_indx).mass_ratio; % 0.0694
+            mass_ratio_uarm = this.sbj_anthro_table(anthro_uarm_table_indx).mass_ratio; % 0.0271
+            mass_ratio_farm = this.sbj_anthro_table(anthro_farm_table_indx).mass_ratio; % 0.0162
+            mass_ratio_hand = this.sbj_anthro_table(anthro_hand_table_indx).mass_ratio; % 0.0061
+            mass_ratio_thigh = this.sbj_anthro_table(anthro_thigh_table_indx).mass_ratio; % 0.1416
+            mass_ratio_shank = this.sbj_anthro_table(anthro_shank_table_indx).mass_ratio; % 0.0433
+            mass_ratio_foot = this.sbj_anthro_table(anthro_foot_table_indx).mass_ratio; % 0.0137
             
             % pelvis CM
             T_v2cm_pelvis = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2cm_seg(:,:,viz_time_step);
-            pos_cm_pelvis = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).pos_cm_seg(viz_time_step, :);  
-            this.plotCoordinateTransform(T_v2cm_pelvis, 50);
+            pos_cm_pelvis = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).pos_cm_seg(viz_time_step, :);
+            this.plotCoordinateTransform(T_v2cm_pelvis, coordinate_scale_CM);
             scatter3(pos_cm_pelvis(1), pos_cm_pelvis(2), pos_cm_pelvis(3), 'MarkerFaceColor', 'r',...
-                'SizeData', 50, 'MarkerEdgeColor', 'k');   
+                'SizeData', mass_ratio_pelvis*marker_full_size, 'MarkerEdgeColor', 'k');
             
-             % lumbar CM
+            % lumbar CM
             T_v2cm_lumbar = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).T_v2cm_seg(:,:,viz_time_step);
-            pos_cm_lumbar = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).pos_cm_seg(viz_time_step, :);  
-            this.plotCoordinateTransform(T_v2cm_lumbar, 50);
+            pos_cm_lumbar = this.sbj_anthro(trial_no).body_segment_transform(lumber_segment_indx).pos_cm_seg(viz_time_step, :);
+            this.plotCoordinateTransform(T_v2cm_lumbar, coordinate_scale_CM);
             scatter3(pos_cm_lumbar(1), pos_cm_lumbar(2), pos_cm_lumbar(3), 'MarkerFaceColor', 'r',...
-                'SizeData', 50, 'MarkerEdgeColor', 'k');   
+                'SizeData', mass_ratio_lumbar*marker_full_size, 'MarkerEdgeColor', 'k');
             
-             % thorax CM
+            % thorax CM
             T_v2cm_thorax = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2cm_seg(:,:,viz_time_step);
-            pos_cm_thorax = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).pos_cm_seg(viz_time_step, :);  
-            this.plotCoordinateTransform(T_v2cm_thorax, 50);
+            pos_cm_thorax = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).pos_cm_seg(viz_time_step, :);
+            this.plotCoordinateTransform(T_v2cm_thorax, coordinate_scale_CM);
             scatter3(pos_cm_thorax(1), pos_cm_thorax(2), pos_cm_thorax(3), 'MarkerFaceColor', 'r',...
-                'SizeData', 50, 'MarkerEdgeColor', 'k');   
+                'SizeData', mass_ratio_thorax*marker_full_size, 'MarkerEdgeColor', 'k');
             
-             % head CM
+            % head CM
             T_v2cm_head = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2cm_seg(:,:,viz_time_step);
-            pos_cm_head = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).pos_cm_seg(viz_time_step, :);  
-            this.plotCoordinateTransform(T_v2cm_head, 50);
+            pos_cm_head = this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).pos_cm_seg(viz_time_step, :);
+            this.plotCoordinateTransform(T_v2cm_head, coordinate_scale_CM);
             scatter3(pos_cm_head(1), pos_cm_head(2), pos_cm_head(3), 'MarkerFaceColor', 'r',...
-                'SizeData', 25, 'MarkerEdgeColor', 'k');            
+                'SizeData', mass_ratio_head*marker_full_size, 'MarkerEdgeColor', 'k');
+            
+            % upper arm CoM           
+            T_v2cm_uarm_R = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_uarm_R = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_r_segment_indx).pos_cm_seg(viz_time_step, :);  
+            T_v2cm_uarm_L = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_uarm_L = this.sbj_anthro(trial_no).body_segment_transform(upper_arm_l_segment_indx).pos_cm_seg(viz_time_step, :);           
+            this.plotCoordinateTransform(T_v2cm_uarm_L, coordinate_scale_CM);
+            this.plotCoordinateTransform(T_v2cm_uarm_R, coordinate_scale_CM);
+            pos_cm_uarm = [pos_cm_uarm_R; pos_cm_uarm_L];            
+            scatter3(pos_cm_uarm(:, 1), pos_cm_uarm(:, 2), pos_cm_uarm(:, 3), 'MarkerFaceColor', 'r',...
+                'SizeData', mass_ratio_uarm*marker_full_size, 'MarkerEdgeColor', 'k');
+            
+            % forearm CoM
+            T_v2cm_farm_R = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_farm_R = this.sbj_anthro(trial_no).body_segment_transform(forearm_r_segment_indx).pos_cm_seg(viz_time_step, :);  
+            T_v2cm_farm_L = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_farm_L = this.sbj_anthro(trial_no).body_segment_transform(forearm_l_segment_indx).pos_cm_seg(viz_time_step, :);           
+            this.plotCoordinateTransform(T_v2cm_farm_L, coordinate_scale_CM);
+            this.plotCoordinateTransform(T_v2cm_farm_R, coordinate_scale_CM);
+            pos_cm_farm = [pos_cm_farm_R; pos_cm_farm_L];            
+            scatter3(pos_cm_farm(:, 1), pos_cm_farm(:, 2), pos_cm_farm(:, 3), 'MarkerFaceColor', 'r',...
+                'SizeData', mass_ratio_farm*marker_full_size, 'MarkerEdgeColor', 'k');
+            
+            % hand CoM
+            T_v2cm_hand_R = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_hand_R = this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).pos_cm_seg(viz_time_step, :);  
+            T_v2cm_hand_L = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2cm_seg(:,:,viz_time_step);
+            pos_cm_hand_L = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).pos_cm_seg(viz_time_step, :);           
+            this.plotCoordinateTransform(T_v2cm_hand_L, coordinate_scale_CM);
+            this.plotCoordinateTransform(T_v2cm_hand_R, coordinate_scale_CM);
+            pos_cm_hand = [pos_cm_hand_R; pos_cm_hand_L];            
+            scatter3(pos_cm_hand(:, 1), pos_cm_hand(:, 2), pos_cm_hand(:, 3), 'MarkerFaceColor', 'r',...
+                'SizeData', mass_ratio_hand*marker_full_size, 'MarkerEdgeColor', 'k');
+            
         end
         
         function vizTrial(this, trial_no, viz_time_step)
@@ -713,7 +1068,7 @@ classdef Subject < handle
             % segment transforms
             this.plotSegmentTrans(trial_no, viz_time_step)
             this.plotSegmentCM(trial_no, viz_time_step)
-    
+            
         end
         
         % visual elements
