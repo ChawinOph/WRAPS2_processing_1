@@ -332,9 +332,10 @@ classdef Subject < handle
             end
             
             % get raw marker positions
-            pelvis_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Pelvis');
-            P_Hip_R_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_R');
-            P_Hip_L_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_L');
+%             % not using hip markers right now
+%             pelvis_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Pelvis');
+%             P_Hip_R_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_R');
+%             P_Hip_L_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_L');
             
             thorax_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Thorax');
             sternal_notch_raw_indx = strcmp(this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_names, 'T_SternalNotch');
@@ -344,9 +345,11 @@ classdef Subject < handle
             head_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Head');
             vertex_raw_indx = strcmp(this.raw_data(trial_no).marker_data(head_raw_indx).marker_names, 'H_Vertex');
             forehead_raw_indx = strcmp(this.raw_data(trial_no).marker_data(head_raw_indx).marker_names, 'H_Forehead');
-            
-            this.sbj_anthro(trial_no).landmark_pos(:,:,6) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_R_raw_indx);
-            this.sbj_anthro(trial_no).landmark_pos(:,:,7) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_L_raw_indx);
+
+            %             % not using hip markers right now            
+%             this.sbj_anthro(trial_no).landmark_pos(:,:,6) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_R_raw_indx);
+%             this.sbj_anthro(trial_no).landmark_pos(:,:,7) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_L_raw_indx);
+           
             this.sbj_anthro(trial_no).landmark_pos(:,:,8) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, sternal_notch_raw_indx);
             this.sbj_anthro(trial_no).landmark_pos(:,:,9) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, C7_raw_indx);
             this.sbj_anthro(trial_no).landmark_pos(:,:,10) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, xyphoid_raw_indx);
@@ -387,6 +390,61 @@ classdef Subject < handle
                 repmat(eye(4), 1, 1, length(origin_pelvis_distal));
             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal = ...
                 this.createTransforms(origin_pelvis_distal, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
+            
+            %% find the estimate hip position from asis and psis pos
+            % R. B. Davis, S. Õunpuu, D. Tyburski, and J. R. Gage, 
+            % “A gait analysis data collection and reduction technique,” 
+            % Hum. Mov. Sci., vol. 10, no. 5, pp. 575–587, Oct. 1991.     
+             
+%             % not using hip markers right now
+%             P_Hip_R_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_R');
+%             P_Hip_L_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_L');
+%             marker_pos_hip_R = this.raw_data(trial_no).marker_data(P_Hip_R_raw_indx).marker_pos(:, :, P_Hip_R_raw_indx);
+%             marker_pos_hip_L = this.raw_data(trial_no).marker_data(P_Hip_L_raw_indx).marker_pos(:, :, P_Hip_L_raw_indx);
+            
+            % creat a the frame based on the reference
+            T_v2masis = this.createTransforms(pos_m_asis, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
+            
+            dasis_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'dasis');
+            asis2hip_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'asis2hip_horiz');
+            thigh_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'thigh');
+            shank_indx = strcmp({this.sbj_anthro_measurement.measurement_table.name}, 'shank');
+            
+            dasis = this.sbj_anthro_measurement.measurement_table(dasis_indx).length_mm/1000; % meters
+            asis2hip = this.sbj_anthro_measurement.measurement_table(asis2hip_indx).length_mm/1000; % meters
+            L_leg = this.sbj_anthro_measurement.measurement_table(thigh_indx).length_mm/1000 + ...
+                this.sbj_anthro_measurement.measurement_table(shank_indx).length_mm/1000;
+            
+            theta = 28.4*pi/180; %rad
+            beta = 18*pi/180; % rad
+            r_marker = 0.014/2; % m            
+            
+            C = 0.115*L_leg - 0.0153;
+            
+            trans_vec_R = [ abs(C*sin(theta) - dasis/2),...
+                - abs(-(asis2hip + r_marker)*cos(beta) + C*cos(theta)*sin(beta)),...
+                - abs(-(asis2hip + r_marker)*sin(beta) - C*cos(theta)*cos(beta))];
+            
+            trans_vec_L = [ -abs((C*sin(theta) - dasis/2)),...
+                - abs(-(asis2hip + r_marker)*cos(beta) + C*cos(theta)*sin(beta)),...
+                - abs(-(asis2hip + r_marker)*sin(beta) - C*cos(theta)*cos(beta))];
+            
+            % convert back to mm and construct the vector matrices
+            T_masis2hip_r = this.createTransformsTranslation(1000*repmat(trans_vec_R, length(pos_m_asis), 1));
+            T_masis2hip_l = this.createTransformsTranslation(1000*repmat(trans_vec_L, length(pos_m_asis), 1));
+            
+            T_v2hip_r = this.multiplyTransforms(T_v2masis, T_masis2hip_r);
+            T_v2hip_l = this.multiplyTransforms(T_v2masis, T_masis2hip_l);
+            
+            % store as the landmark pos         
+            pos_r_hip_joint = reshape(T_v2hip_r(1:3, 4, :), 3, [])';
+            pos_l_hip_joint = reshape(T_v2hip_l(1:3, 4, :), 3, [])';           
+            this.sbj_anthro(trial_no).landmark_pos(:,:,6) = pos_r_hip_joint;
+            this.sbj_anthro(trial_no).landmark_pos(:,:,7) = pos_l_hip_joint;
+            
+            % store the hip joint frames
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_r = T_v2hip_r;
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_l = T_v2hip_l;
             
             %% lumber using 'origin_pelvis', 'XP', 'T8'
             indx_xp = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'XP');
@@ -456,8 +514,6 @@ classdef Subject < handle
                 this.createTransforms(origin_head_proxim, i_hat_head, j_hat_head, k_hat_head);
             this.sbj_anthro(trial_no).body_segment_transform(head_segment_indx).T_v2seg_distal = ...
                 this.createTransforms(origin_head_distal, i_hat_head, j_hat_head, k_hat_head);
-            
-            disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])
             
             %% upper Arms transformation using the thorax coordinate frame
             upper_arm_r_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'UpperArm_R'));
@@ -559,6 +615,8 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(hand_r_segment_indx).T_v2seg_distal = T_v2hand_R_distal;
             this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_proxim = T_v2hand_L_proxim;
             this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal = T_v2hand_L_distal;
+            
+            disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])
             
         end
         
@@ -843,7 +901,11 @@ classdef Subject < handle
             %             Tp1 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tp2 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal(:,:, viz_time_step);
             %             this.plotCoordinateTransform(Tp1, 150)
+            Thip_r = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_r(:,:, viz_time_step);
+            Thip_l = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_l(:,:, viz_time_step);
             this.plotCoordinateTransform(Tp2, coordinate_scale)
+            this.plotCoordinateTransform(Thip_r, coordinate_scale)
+            this.plotCoordinateTransform(Thip_l, coordinate_scale)
             
             % lumbar
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
@@ -1039,7 +1101,7 @@ classdef Subject < handle
         
         function vizTrial(this, trial_no, viz_time_step)
             % vizTrial: visualization of each trial
-            figure;
+            figure('pos',[100 100 900 600])
             this.plotCoordinateTransform(eye(4), 250); hold on; % vicon origin
             this.plotTrajCoP(trial_no, 'Seat Plate');
             this.plotTrajCoP(trial_no, 'Foot Plate');
