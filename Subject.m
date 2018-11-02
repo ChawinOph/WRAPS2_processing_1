@@ -906,6 +906,11 @@ classdef Subject < handle
             this.plotCoordinateTransform(Tp2, coordinate_scale)
             this.plotCoordinateTransform(Thip_r, coordinate_scale)
             this.plotCoordinateTransform(Thip_l, coordinate_scale)
+            % plot line from pelvis center to hips
+            pelv2hip_r_line = [Tp2(1:3, 4),Thip_r(1:3, 4)];
+            pelv2hip_l_line = [Tp2(1:3, 4),Thip_l(1:3, 4)];
+            plot3(pelv2hip_r_line(1, :), pelv2hip_r_line(2, :), pelv2hip_r_line(3, :), 'k:');
+            plot3(pelv2hip_l_line(1, :), pelv2hip_l_line(2, :), pelv2hip_l_line(3, :), 'k:');
             
             % lumbar
             lumber_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Lumbar'));
