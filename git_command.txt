@@ -11,6 +11,7 @@ git add marker_cluster_pos.mat
 git add BodySegment.m
 git add sbj_measurement_table.mat
 git add anthropomet_table.mat
+git add git_command.txt
 
 % push first time to remote
 git remote add origin https://github.com/ChawinOph/WRAPS2_processing_1.git
