@@ -437,8 +437,8 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).landmark_pos(:,:,7) = pos_l_hip_joint;
             
             % store the hip joint frames
-            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_r = T_v2hip_r;
-            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_l = T_v2hip_l;
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_aux_r = T_v2hip_r;
+            this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_aux_l = T_v2hip_l;
             
             %% lumber using 'origin_pelvis', 'XP', 'T8'
             indx_xp = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'XP');
@@ -533,8 +533,8 @@ classdef Subject < handle
             T_v2thorax_shdr_R = this.multiplyTransforms(T_v2thorax_distal, T_thorax_distal2thorax_shdr_joint_R);
             T_v2thorax_shdr_L = this.multiplyTransforms(T_v2thorax_distal, T_thorax_distal2thorax_shdr_joint_L);
                        
-            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_r = T_v2thorax_shdr_R;
-            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_l = T_v2thorax_shdr_L;
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_aux_r = T_v2thorax_shdr_R;
+            this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_aux_l = T_v2thorax_shdr_L;
             
             % specify the shoulder joint rotation
             trial_length = length(T_v2thorax_shdr_R);
@@ -686,15 +686,22 @@ classdef Subject < handle
             
             T_foot_r_proxim2foot_r_distal = this.createTransformsTranslation(repmat([0, l_foot - l_heel2ankle, -l_ankle2ground], trial_length, 1)); 
             T_foot_l_proxim2foot_l_distal = this.createTransformsTranslation(repmat([0, l_foot - l_heel2ankle, -l_ankle2ground], trial_length, 1)); 
+            T_foot_r_proxim2heel_r = this.createTransformsTranslation(repmat([0, - l_heel2ankle, -l_ankle2ground], trial_length, 1)); 
+            T_foot_l_proxim2heel_l = this.createTransformsTranslation(repmat([0, - l_heel2ankle, -l_ankle2ground], trial_length, 1)); 
             
             T_v2foot_r_distal = this.multiplyTransforms(T_v2foot_r_proxim, T_foot_r_proxim2foot_r_distal);
             T_v2foot_l_distal = this.multiplyTransforms(T_v2foot_l_proxim, T_foot_l_proxim2foot_l_distal);
+            T_v2heel_r = this.multiplyTransforms(T_v2foot_r_proxim, T_foot_r_proxim2heel_r);
+            T_v2heel_l = this.multiplyTransforms(T_v2foot_l_proxim, T_foot_l_proxim2heel_l);
             
              % store proximal and distal transforms into the structure
             this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_proxim = T_v2foot_r_proxim;
             this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal = T_v2foot_r_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal_aux_r =T_v2heel_r;   
+            
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_proxim = T_v2foot_l_proxim;
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal = T_v2foot_l_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l = T_v2heel_l;
             
             disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])    
         end
@@ -980,8 +987,8 @@ classdef Subject < handle
             %             Tp1 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tp2 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal(:,:, viz_time_step);
             %             this.plotCoordinateTransform(Tp1, 150)
-            Thip_r = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_r(:,:, viz_time_step);
-            Thip_l = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_limb_l(:,:, viz_time_step);
+            Thip_r = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_aux_r(:,:, viz_time_step);
+            Thip_l = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_aux_l(:,:, viz_time_step);
             this.plotCoordinateTransform(Tp2, coordinate_scale)
             this.plotCoordinateTransform(Thip_r, coordinate_scale)
             this.plotCoordinateTransform(Thip_l, coordinate_scale)
@@ -1005,8 +1012,8 @@ classdef Subject < handle
             thorax_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Thorax'));
             Tt1 = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             Tt2 = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal(:,:, viz_time_step);
-            Tshldr_r = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_r(:,:, viz_time_step);
-            Tshldr_l = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_limb_l(:,:, viz_time_step);              
+            Tshldr_r = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_aux_r(:,:, viz_time_step);
+            Tshldr_l = this.sbj_anthro(trial_no).body_segment_transform(thorax_segment_indx).T_v2seg_distal_aux_l(:,:, viz_time_step);              
             this.plotCoordinateTransform(Tt1, coordinate_scale)
             this.plotCoordinateTransform(Tt2, coordinate_scale)
             this.plotCoordinateTransform(Tshldr_r, coordinate_scale)
@@ -1119,17 +1126,26 @@ classdef Subject < handle
             foot_l_segment_indx = find(strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Foot_L'));
             T_foot_r_prox = this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
             T_foot_r_dist = this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            T_heel_r = this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal_aux_r(:,:, viz_time_step);
+            
             T_foot_l_prox = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
-            T_foot_l_dist = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal(:,:, viz_time_step);
+            T_foot_l_dist = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal(:,:, viz_time_step);        
+            T_heel_l = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l(:,:, viz_time_step);   
+            
             this.plotCoordinateTransform(T_foot_r_prox, coordinate_scale)
             this.plotCoordinateTransform(T_foot_r_dist, coordinate_scale)
+            this.plotCoordinateTransform(T_heel_r, coordinate_scale)
+            
             this.plotCoordinateTransform(T_foot_l_prox, coordinate_scale)
             this.plotCoordinateTransform(T_foot_l_dist, coordinate_scale)
+            this.plotCoordinateTransform(T_heel_l, coordinate_scale)
+            
             % plot segment lines
-            foot_r_line = [T_foot_r_prox(1:3, 4), T_foot_r_dist(1:3, 4)];
-            foot_l_line = [T_foot_l_prox(1:3, 4), T_foot_l_dist(1:3, 4)];
-            plot3(foot_r_line(1, :), foot_r_line(2, :), foot_r_line(3, :), 'k:');
-            plot3(foot_l_line(1, :), foot_l_line(2, :), foot_l_line(3, :), 'k:');
+            ankle_r_line = [T_foot_r_prox(1:3, 4), T_foot_r_dist(1:3, 4), T_heel_r(1:3, 4), T_foot_r_prox(1:3, 4)];
+            ankle_l_line = [T_foot_l_prox(1:3, 4), T_foot_l_dist(1:3, 4), T_heel_l(1:3, 4), T_foot_l_prox(1:3, 4)];
+                                
+            plot3(ankle_r_line(1, :), ankle_r_line(2, :), ankle_r_line(3, :), 'k:');
+            plot3(ankle_l_line(1, :), ankle_l_line(2, :), ankle_l_line(3, :), 'k:');
             
         end
         
