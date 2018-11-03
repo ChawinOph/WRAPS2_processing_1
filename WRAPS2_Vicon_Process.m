@@ -67,7 +67,7 @@ sbj1.importForcePlateData_csv(5, force_plate_reach_max_shoulder_contra_trials, f
 
 % Calculate transformation of the WRAPS2.0 from vicon
 toc
-sbj1.vizTrial(1, 1)
-sbj1.vizTrial(3, 1000)
+sbj1.vizTrial(1, 1000)
+sbj1.vizTrial(3, 1)
 
 %% Calculate CM of WRAPS using CAD and scale

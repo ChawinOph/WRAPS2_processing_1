@@ -703,6 +703,18 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal = T_v2foot_l_distal;
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l = T_v2heel_l;
             
+            %% Correct the lower limb configuration using inverse kinematics
+            % store the first proximal foot frame transformation and use
+            % it as the starting point of the inverse kinematics. This
+            % idea is based on the fixed ankle assumption
+            T_v2foot_r_fix = repmat(T_v2foot_r_proxim(:, :, 1), 1, 1, trial_length);
+            T_v2foot_l_fix = repmat(T_v2foot_l_proxim(:, :, 1), 1, 1, trial_length);
+            
+            % calculate xyz position of the hip w.r.t the proximal foot
+            % frame through out the trial
+            pos_hip_r_wrt_foot_r_fix = this.calcPosInNewFrame(T_v2foot_r_fix, reshape(T_v2hip_r(1:3, 4, :), 3, [])');
+            pos_hip_l_wrt_foot_l_fix = this.calcPosInNewFrame(T_v2foot_l_fix, reshape(T_v2hip_l(1:3, 4, :), 3, [])');
+            
             disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])    
         end
         
@@ -814,6 +826,7 @@ classdef Subject < handle
             T_v2hand_L_distal = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal;
             
             % proximal joints are superior frames this case
+            % upper limbs
             [T_v2cm_uarm_R, pos_cm_uarm_R] = this.calcLimbCMTranforms(T_v2uarm_R_proxim, T_v2uarm_R_distal, cm_pos_ratio_uarm_prox2dist);
             [T_v2cm_uarm_L, pos_cm_uarm_L] = this.calcLimbCMTranforms(T_v2uarm_L_proxim, T_v2uarm_L_distal, cm_pos_ratio_uarm_prox2dist);
             [T_v2cm_farm_R, pos_cm_farm_R] = this.calcLimbCMTranforms(T_v2farm_R_proxim, T_v2farm_R_distal, cm_pos_ratio_farm_prox2dist);
@@ -841,6 +854,13 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2cm_seg = T_v2cm_hand_L;
             this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).pos_cm_seg = pos_cm_hand_L;
             this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).seg_mass = sbj_mass*mass_ratio_hand;
+            
+            % lower limbs
+%             [T_v2cm_thigh_R, pos_cm_thigh_R] = this.calcLimbCMTranforms(T_v2uarm_R_proxim, T_v2uarm_R_distal, cm_pos_ratio_uarm_prox2dist);
+%             [T_v2cm_uarm_L, pos_cm_uarm_L] = this.calcLimbCMTranforms(T_v2uarm_L_proxim, T_v2uarm_L_distal, cm_pos_ratio_uarm_prox2dist);
+%             [T_v2cm_farm_R, pos_cm_farm_R] = this.calcLimbCMTranforms(T_v2farm_R_proxim, T_v2farm_R_distal, cm_pos_ratio_farm_prox2dist);
+%             [T_v2cm_farm_L, pos_cm_farm_L] = this.calcLimbCMTranforms(T_v2farm_L_proxim, T_v2farm_L_distal, cm_pos_ratio_farm_prox2dist);
+          
                    
             disp(['Updated anthropometric segmental inertia in trial no. ', num2str(trial_no)])
         end
@@ -1247,6 +1267,14 @@ classdef Subject < handle
             scatter3(pos_cm_hand(:, 1), pos_cm_hand(:, 2), pos_cm_hand(:, 3), 'MarkerFaceColor', 'r',...
                 'SizeData', mass_ratio_hand*marker_full_size, 'MarkerEdgeColor', 'k');
             
+            % thigh CoM
+%             T_v2cm_
+%             T_v2cm_
+            
+            % shank CoM
+            
+            % Foot CoM
+            
         end
         
         function vizTrial(this, trial_no, viz_time_step)
@@ -1267,10 +1295,10 @@ classdef Subject < handle
             
             title(this.raw_data(trial_no).marker_trial_name)
             %             for time_step = 1: 100 : length(this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
-            %                 T_v2pelvis = this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,time_step);
-            %                 T_v2thorax = this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,time_step);
-            %                 this.plotCoordinateTransform(T_v2pelvis, 100);
-            %                 this.plotCoordinateTransform(T_v2thorax, 100);
+            T_v2pelvis = this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,viz_time_step);
+            T_v2thorax = this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,viz_time_step);
+            this.plotCoordinateTransform(T_v2pelvis, 75);
+            this.plotCoordinateTransform(T_v2thorax, 75);
             %             end
             
             % landmark pos
