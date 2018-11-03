@@ -710,14 +710,93 @@ classdef Subject < handle
             T_v2foot_r_fix = repmat(T_v2foot_r_proxim(:, :, 1), 1, 1, trial_length);
             T_v2foot_l_fix = repmat(T_v2foot_l_proxim(:, :, 1), 1, 1, trial_length);
             
-            % calculate xyz position of the hip w.r.t the proximal foot
-            % frame through out the trial
-            pos_hip_r_wrt_foot_r_fix = this.calcPosInNewFrame(T_v2foot_r_fix, reshape(T_v2hip_r(1:3, 4, :), 3, [])');
-            pos_hip_l_wrt_foot_l_fix = this.calcPosInNewFrame(T_v2foot_l_fix, reshape(T_v2hip_l(1:3, 4, :), 3, [])');
+            [T_hip_r2thigh_r_prox_new, T_thigh_r_dist2shank_r_prox_new, T_shank_r_dist2foot_r_prox_new] = ...
+                this.inverseKinLowerLimbs(T_v2hip_r, T_v2foot_r_fix, l_thigh, l_shank);
+            [T_hip_l2thigh_l_prox_new, T_thigh_l_dist2shank_l_prox_new, T_shank_L_dist2foot_l_prox_new] = ...
+                this.inverseKinLowerLimbs(T_v2hip_l, T_v2foot_l_fix, l_thigh, l_shank);           
+            
+            % redo the forward calculation
+            T_v2thigh_r_proxim = this.multiplyTransforms(T_v2hip_r, T_hip_r2thigh_r_prox_new);
+            T_v2thigh_l_proxim = this.multiplyTransforms(T_v2hip_l, T_hip_l2thigh_l_prox_new);
+            T_v2thigh_r_distal = this.multiplyTransforms(T_v2thigh_r_proxim, T_thigh_r_proxim2thigh_r_distal);
+            T_v2thigh_l_distal = this.multiplyTransforms(T_v2thigh_l_proxim, T_thigh_l_proxim2thigh_l_proxim);
+            
+            T_v2shank_r_proxim = this.multiplyTransforms(T_v2thigh_r_distal, T_thigh_r_dist2shank_r_prox_new);
+            T_v2shank_l_proxim = this.multiplyTransforms(T_v2thigh_l_distal, T_thigh_l_dist2shank_l_prox_new);
+            T_v2shank_r_distal = this.multiplyTransforms(T_v2shank_r_proxim, T_shank_r_proxim2shank_r_distal);
+            T_v2shank_l_distal = this.multiplyTransforms(T_v2shank_l_proxim, T_shank_l_proxim2shank_l_proxim);
+            
+            T_v2foot_r_proxim = this.multiplyTransforms(T_v2shank_r_distal, T_shank_r_dist2foot_r_prox_new);
+            T_v2foot_l_proxim = this.multiplyTransforms(T_v2shank_l_distal, T_shank_L_dist2foot_l_prox_new);
+            T_v2foot_r_distal = this.multiplyTransforms(T_v2foot_r_proxim, T_foot_r_proxim2foot_r_distal);
+            T_v2foot_l_distal = this.multiplyTransforms(T_v2foot_l_proxim, T_foot_l_proxim2foot_l_distal);
+            T_v2heel_r = this.multiplyTransforms(T_v2foot_r_proxim, T_foot_r_proxim2heel_r);
+            T_v2heel_l = this.multiplyTransforms(T_v2foot_l_proxim, T_foot_l_proxim2heel_l);                   
+            
+            % store proximal and distal transforms into the structure
+            % thigh
+            this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).T_v2seg_proxim = T_v2thigh_r_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).T_v2seg_distal = T_v2thigh_r_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(thigh_l_segment_indx).T_v2seg_proxim = T_v2thigh_l_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(thigh_l_segment_indx).T_v2seg_distal = T_v2thigh_l_distal;        
+            
+            % shank
+            this.sbj_anthro(trial_no).body_segment_transform(shank_r_segment_indx).T_v2seg_proxim = T_v2shank_r_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(shank_r_segment_indx).T_v2seg_distal = T_v2shank_r_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(shank_l_segment_indx).T_v2seg_proxim = T_v2shank_l_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(shank_l_segment_indx).T_v2seg_distal = T_v2shank_l_distal;
+            
+            % ankle
+            this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_proxim = T_v2foot_r_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal = T_v2foot_r_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_r_segment_indx).T_v2seg_distal_aux_r =T_v2heel_r;   
+            
+            this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_proxim = T_v2foot_l_proxim;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal = T_v2foot_l_distal;
+            this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l = T_v2heel_l;
             
             disp(['Updated anthropometric segment transformations in trial no. ', num2str(trial_no)])    
         end
         
+        %% Inverse kinematic for lower limb positions
+        function [T_hip2thigh_prox, T_thigh_dist2shank_prox, T_shank_dis2foot_prox] = inverseKinLowerLimbs(this, T_v2hip, T_v2foot_fix, l_thigh, l_shank)
+            % inverseKinLowerLimbs: calculate reverse joint angles of the
+            %   from the position of the moving hip wrt proximal ankle frame
+            %   and calculate the transformation matrices from the hip to the
+            %   ankle joint in the forward manner
+            % the kinematic chains from ankle to hip is Uyx->Rx->S(hip) 
+            
+            pos_hip_wrt_foot_fix = this.calcPosInNewFrame(T_v2foot_fix, reshape(T_v2hip(1:3, 4, :), 3, [])');
+            
+            L_thigh = l_thigh*ones(length(pos_hip_wrt_foot_fix), 1);
+            L_shank = l_shank*ones(length(pos_hip_wrt_foot_fix), 1);
+%            
+            D = ((sum(pos_hip_wrt_foot_fix.^2, 2) - L_thigh.^2 - L_shank.^2))./(2*L_thigh.*L_shank);  
+            q_invs_knee = atan2(sqrt(1 - D.^2), D);
+            q_invs_ankle_x = abs(atan2(pos_hip_wrt_foot_fix(:, 2), sqrt(pos_hip_wrt_foot_fix(:, 1).^2 + pos_hip_wrt_foot_fix(:, 3).^2)))...
+                - atan2(L_thigh.*sin(q_invs_knee), L_shank + L_thigh.*cos(q_invs_knee)); % assuming that the second term is the small angle (elbow down)
+            q_invs_ankle_y = atan2(pos_hip_wrt_foot_fix(:, 1), pos_hip_wrt_foot_fix(:, 3));
+            
+            T_invs_ankle_y = this.createRotationAxisAngle(repmat([0 1 0], length(pos_hip_wrt_foot_fix), 1), q_invs_ankle_y); 
+            T_invs_ankle_x = this.createRotationAxisAngle(repmat([1 0 0], length(pos_hip_wrt_foot_fix), 1), q_invs_ankle_x); 
+            
+            T_foot_prox2shank_dist = this.multiplyTransforms(T_invs_ankle_y, T_invs_ankle_x);
+            T_shank_dist2shank_prox = this.createTransformsTranslation(repmat([0, 0, l_shank], length(pos_hip_wrt_foot_fix), 1));             
+            T_shank_prox2thigh_dist = this.createRotationAxisAngle(repmat([1 0 0], length(pos_hip_wrt_foot_fix), 1), q_invs_knee); 
+            T_thigh_dist2thigh_prox =  this.createTransformsTranslation(repmat([0, 0, l_thigh], length(pos_hip_wrt_foot_fix), 1));                     
+            
+            T_v2shank_dist = this.multiplyTransforms(T_v2foot_fix, T_foot_prox2shank_dist);
+            T_v2shank_prox = this.multiplyTransforms(T_v2shank_dist, T_shank_dist2shank_prox);
+            T_v2thigh_dist = this.multiplyTransforms(T_v2shank_prox, T_shank_prox2thigh_dist);
+            T_v2thigh_prox = this.multiplyTransforms(T_v2thigh_dist, T_thigh_dist2thigh_prox);
+            
+            % return solutions
+            T_shank_dis2foot_prox = this.invTransformsMat(T_foot_prox2shank_dist); % forward ankle joint
+            T_thigh_dist2shank_prox = this.invTransformsMat(T_shank_prox2thigh_dist); % forward ankle joint
+            T_hip2thigh_prox = this.multiplyTransforms(this.invTransformsMat(T_v2hip), T_v2thigh_prox);               
+        end
+        
+        %% Calculate segment intertia
         function calcSegmentInertia(this, trial_no)
             % find landmarks projected on the local segment frame
             anthro_pelvis_table_indx = strcmp({this.sbj_anthro_table.segment_name}, 'Pelvis');
