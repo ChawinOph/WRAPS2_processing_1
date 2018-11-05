@@ -110,6 +110,7 @@ classdef Subject < handle
             this.sbj_WRAPS2(trial_no).trial_transform_data = this.sbj_marker_cluster_pos;
             this.calcTransformation(trial_no, 'Pelvis', 'Pelvis Brace');
             this.calcTransformation(trial_no, 'Thorax', 'Thorax Brace');
+            this.calcTransformationBetweenClusters(trial_no, 'Pelvis Brace', 'Thorax Brace')
             this.calcLandmarkPos(trial_no);
             this.calcSegmentTrans(trial_no);
             this.calcSegmentInertia(trial_no)
@@ -282,6 +283,17 @@ classdef Subject < handle
             
         end
         
+        % Calculate transformations between segment
+        function calcTransformationBetweenClusters(this, trial_no, cluster_name_base, cluster_name_end)
+            cluster_base_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name_base);
+            cluster_end_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name_end);
+            T_v2base = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_base_no).transforms_vicon2seg;
+            T_v2end = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_end_no).transforms_vicon2seg;  
+            this.sbj_WRAPS2(trial_no).T_base2end =  this.multiplyTransforms(this.invTransformsMat(T_v2base), T_v2end);
+            
+             disp(['Updated ', cluster_name_base, ' to ', cluster_name_end, ' transformations in trial no. ', num2str(trial_no)])
+        end
+%         
         %% Calculate landmark positions
         
         function calcLandmarkPos(this, trial_no)
