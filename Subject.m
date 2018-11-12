@@ -71,7 +71,7 @@ classdef Subject < handle
             
             % Create the low-pass filter (4th order Butterworth)
             Fs = this.freq_marker; %this is the sampling frequency (frame rate)
-            Fc = 5; %this is the cutoff frequency for the low-pass filter.
+            Fc = 6; %this is the cutoff frequency for the low-pass filter.
             Wn = (Fc*2)/Fs;
             [b,a] = butter(4, Wn);
             

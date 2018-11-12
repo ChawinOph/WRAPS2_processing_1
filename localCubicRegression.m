@@ -61,6 +61,7 @@ X = X(:); % total data points
 % square problem
 T_diff = t*ones(size(T)) - T;
 W = 1./sqrt(2*pi)*exp(-(T_diff.^2/(2*h^2)));
+W = sqrt(W); % the SSE has the w term with no square
 
 % W = ones(size(T_diff));
 X = X.*W; % multiply the weight to both side of the equation element wise
@@ -71,7 +72,7 @@ if nargout > 2
 end
 
 % Construct the Vandermonde matrix V = [T_diff.^n ... T_diff.^2 T_diff ones(size(T_diff))]
-V(:,n+1) = ones(length(T_diff),1,class(T_diff));
+V(:,n+1) = W.*ones(length(T_diff),1,class(T_diff));
 for j = n:-1:1 % start the loop at the second to last column
     V(:,j) = T_diff.*V(:,j+1);
     V(:,j) = W.*V(:,j); % multiply weight to each column
