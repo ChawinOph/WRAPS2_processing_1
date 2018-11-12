@@ -98,8 +98,26 @@ legend('v_x', 'v_y', 'v_z')
 % vol. 52, no. 6, pp. 695–706, Jun. 2009.
 pelvis_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(1).marker_pos;
 thorax_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(2).marker_pos;
+T = 0: 1/sbj1.freq_marker : (length(pelvis_brace_marker_pos) - 1)/sbj1.freq_marker;
+P = zeros(length(T), 2);
+for i = 1:length(T)
+    [p,S,mu] = localCubicRegression(T(i), T', pelvis_brace_marker_pos(:,2,1), 10);
+    P(i, :) = p(4:-1:3);
+end
 
+% diff method
+[~, dvar_P] = sbj1.calcFirstOrderDerivative(T, pelvis_brace_marker_pos(:,2,1), 'center');
 
+close all;
+figure;
+% position y
+plot(T, pelvis_brace_marker_pos(:,2,1)); hold on
+plot(T, P(:,1));
+
+figure;
+% velocity y
+plot(T, dvar_P); hold on
+plot(T, P(:,2)); 
 
 
 

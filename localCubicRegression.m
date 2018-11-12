@@ -42,36 +42,46 @@ function [p,S,mu] = localCubicRegression(t, T, X, h)
 
 % this file is modified from polyfit.m function by using the command 'edit polyfit'
 % This modified function is based on "local fit with a cubic order regression"
-% A. Page, P. Candelas, and F. Belmar, “On the use of local fitting techniques 
+% A. Page, P. Candelas, and F. Belmar, “On the use of local fitting techniques
 % for the analysis of physical dynamic systems,” Eur. J. Phys., vol. 27, no. 2, p. 273, 2006.
 % the input t is a scalar query time in the data set while
+% 
+% The estimated first derivative at the query time t is p(3) while the
+% smooth data is p(4), and the estimated second derivative is 2* 
 
 if ~isequal(size(T),size(X))
     error(message('MATLAB:polyfit:XYSizeMismatch'))
 end
 
-n = 3; 
-x = x(:);
-y = y(:);
+n = 3; % always use cubic
+T = T(:); % total time series of data (flatten the array along the first dimension (row))
+X = X(:); % total data points
 
-w = 1/sqrt(2*pi)*exp(-(t*ones(size(T))).^2)
+% calculate the Gaussian kernel funtions as the weight fucntion in the least
+% square problem
+T_diff = t*ones(size(T)) - T;
+W = 1./sqrt(2*pi)*exp(-(T_diff.^2/(2*h^2)));
+
+% W = ones(size(T_diff));
+X = X.*W; % multiply the weight to both side of the equation element wise
 
 if nargout > 2
-    mu = [mean(x); std(x)];
-    x = (x - mu(1))/mu(2);
+    mu = [mean(T_diff); std(T_diff)];
+    T_diff = (T_diff - mu(1))/mu(2);
 end
 
-% Construct the Vandermonde matrix V = [x.^n ... x.^2 x ones(size(x))]
-V(:,n+1) = ones(length(x),1,class(x));
-for j = n:-1:1
-    V(:,j) = x.*V(:,j+1);
+% Construct the Vandermonde matrix V = [T_diff.^n ... T_diff.^2 T_diff ones(size(T_diff))]
+V(:,n+1) = ones(length(T_diff),1,class(T_diff));
+for j = n:-1:1 % start the loop at the second to last column
+    V(:,j) = T_diff.*V(:,j+1);
+    V(:,j) = W.*V(:,j); % multiply weight to each column
 end
 
-% Solve least squares problem p = V\y to get polynomial coefficients p.
+% Solve least squares problem p = V\X to get polynomial coefficients p.
 [Q,R] = qr(V,0);
 oldws = warning('off','all');   % Turn all warnings off before solving
 try
-    p = R\(Q'*y);               % Same as p = V\y
+    p = R\(Q'*X);               % Same as p = V\X
 catch ME
     warning(oldws);             % Restore initial warning state
     throw(ME);
@@ -90,20 +100,22 @@ elseif warnIfLargeConditionNumber(R)
 end
 
 if nargout > 1
-    r = y - V*p;
+    r = X - V*p;
     % S is a structure containing three elements: the triangular factor
     % from a QR decomposition of the Vandermonde matrix, the degrees of
     % freedom and the norm of the residuals.
     S.R = R;
-    S.df = max(0,length(y) - (n+1));
+    S.df = max(0,length(X) - (n+1));
     S.normr = norm(r);
 end
 
 p = p.'; % Polynomial coefficients are row vectors by convention.
 
-function flag = warnIfLargeConditionNumber(R)
-if isa(R, 'double')
-    flag = (condest(R) > 1e+10);
-else
-    flag = (condest(R) > 1e+05);
+    function flag = warnIfLargeConditionNumber(R)
+        if isa(R, 'double')
+            flag = (condest(R) > 1e+10);
+        else
+            flag = (condest(R) > 1e+05);
+        end
+    end
 end
