@@ -71,3 +71,30 @@ sbj1.vizTrial(1, 1000)
 sbj1.vizTrial(3, 1000)
 
 %% Calculate CM of WRAPS using CAD and scale
+
+%% Calculate the Velocities
+T = sbj1.sbj_WRAPS2(trial_no).T_base2end;
+time = 0: 1/sbj1.freq_marker: (length(T) - 1)/sbj1.freq_marker;
+var = reshape(T(1:3, 4, :), 3, [])';
+[time, dvar_fwd] = sbj1.calcFirstOrderDerivative(time, var, 'forward');
+[time, dvar_bwd] = sbj1.calcFirstOrderDerivative(time, var, 'backward');
+[time, dvar_cen] = sbj1.calcFirstOrderDerivative(time, var, 'center');
+
+figure;
+subplot(2,1,1);
+plot(time, var); hold on
+legend('x', 'y', 'z')
+subplot(2,1, 2);
+plot(time, dvar_fwd);
+legend('v_x', 'v_y', 'v_z')
+% plot(time, dvar_bwd, ':r'); 
+% plot(time, dvar_cen, '--b'); 
+
+%% smooth the marker pos on the brace before finding the velocities of each marker and IARs
+pelvis_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(1).marker_pos;
+thorax_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(2).marker_pos;
+
+
+
+
+

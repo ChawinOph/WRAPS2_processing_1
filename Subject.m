@@ -70,7 +70,7 @@ classdef Subject < handle
             M_trim = rmmissing(M_raw);
             
             % Create the low-pass filter (4th order Butterworth)
-            Fs = 100; %this is the sampling frequency (frame rate)
+            Fs = this.freq_marker; %this is the sampling frequency (frame rate)
             Fc = 5; %this is the cutoff frequency for the low-pass filter.
             Wn = (Fc*2)/Fs;
             [b,a] = butter(4, Wn);
@@ -1135,7 +1135,36 @@ classdef Subject < handle
             T_v2cm_foot = this.multiplyTransforms(T_v2heel , T_heel2cm_foot);
             % get only the position vectors
             pos_cm_foot = reshape(T_v2cm_foot(1:3, 4, :), 3, [])';
-        end
+         end
+        
+         %% Kinematics Functions
+         function [time, dvar] = calcFirstOrderDerivative(~, time, var, mode)
+             % calcFirstOrderDerivative: calculate the first derivation of
+             % time data: n x 1 array (will be returned at the output argument)
+             % var: n x m array of m variables
+             % mode: 'forward', 'backward', or 'center' for differences
+             % calculation
+             dt = time(2) - time(1);
+             dvar = zeros(size(var));
+             if strcmp(mode, 'forward')
+                 dvar(1:end - 1, :) = diff(var);
+                 dvar(end, :) = var(end, :) - var(end - 1, :); % backward diff at the edge
+                 dvar = dvar/dt;
+             elseif strcmp(mode, 'backward') 
+                 dvar(1, :) = var(2, :) - var(1, :); % fwd diff at the edge
+                 dvar(2:end, :) = diff(var);
+                 dvar = dvar/dt;
+             elseif strcmp(mode, 'center')
+                 % calculate first order backward difference at the edges of the
+                 % domain 
+                 dvar(1, :) = var(2, :) - var(1, :);
+                 dvar(end, :) = var(end, :) - var(end - 1, :);
+                 dvar(2: end - 1, :) = var(3:end, :) - var(1:end - 2, :);
+                 dvar = dvar/(2*dt);
+             else
+                 error('%s is not a recognized method', mode)
+             end              
+         end
 
         %% Visualization
         function plotCoPvsTime(this, trial_no, plate_name)
