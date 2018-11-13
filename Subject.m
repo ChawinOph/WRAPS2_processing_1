@@ -69,13 +69,14 @@ classdef Subject < handle
             % Apply filter
             M_trim = rmmissing(M_raw);
             
-            % Create the low-pass filter (2nd order Butterworth or 4th order)
+            % Create the low-pass filter (2nd order Butterworth)
             Fs = this.freq_marker; %this is the sampling frequency (frame rate)
-            Fc = 6; %this is the cutoff frequency (6 Hz by default) for the low-pass filter.
+            Fc = 6; % this is the cutoff frequency (6 Hz by default) for the low-pass filter.
             Wn = (Fc*2)/Fs; % ratio of the cut-off freq and nyquist freq
             [b,a] = butter(2, Wn);
             
-            % Apply filter
+            % Apply filter (equivalent to 4th order zero-lag lowpass)
+            % refer to https://www.mathworks.com/help/signal/ref/filtfilt.html
             M_filt = filtfilt(b, a, M_trim);
             
             % Import headername for sorting
@@ -97,10 +98,14 @@ classdef Subject < handle
                     end
                 end
                 [var, var_indice] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_filt);
+                [var_raw, ~] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_trim);
                 marker_pos = this.sortMarker(var, length(var_indice));
+                marker_pos_raw = this.sortMarker(var_raw, length(var_indice));
                 this.raw_data(trial_no).marker_data(seg_no).segment_names = sorted_segment_names{seg_no};
                 this.raw_data(trial_no).marker_data(seg_no).marker_names = sorted_marker_names{seg_no};
+                % store both raw and filtered data
                 this.raw_data(trial_no).marker_data(seg_no).marker_pos =  marker_pos;
+                this.raw_data(trial_no).marker_data(seg_no).marker_pos_raw =  marker_pos_raw;
             end
             
             disp(['Imported raw marker data from trial no. ', num2str(trial_no), ' (', this.raw_data(trial_no).marker_trial_name, ')'])
@@ -114,7 +119,7 @@ classdef Subject < handle
             this.calcLandmarkPos(trial_no);
             this.calcSegmentTrans(trial_no);
             this.calcSegmentInertia(trial_no)
-            disp(' ')
+            disp(' ') % intentionally leave an empty line
             
         end
         
@@ -1141,9 +1146,8 @@ classdef Subject < handle
          function [time, dvar] = calcFirstOrderDerivative(~, time, var, mode)
              % calcFirstOrderDerivative: calculate the first derivation of
              % time data: n x 1 array (will be returned at the output argument)
-             % var: n x m array of m variables
-             % mode: 'forward', 'backward', or 'center' for differences
-             % calculation
+             % var: n x dim array of m variables
+             % mode: 'forward', 'backward', or 'center', or 'center_5point' 
              dt = time(2) - time(1);
              dvar = zeros(size(var));
              if strcmp(mode, 'forward')
@@ -1161,19 +1165,43 @@ classdef Subject < handle
                  dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
                  dvar(2: end - 1, :) = (var(3:end, :) - var(1:end - 2, :))/(2*dt);
              elseif strcmp(mode, 'center_5point')
+                 % five point method for the first derivative
+                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h
                  % calculate first order backward difference at the edges of the
                  % domain and center at the second and the second before
                  % that last point
-                 % five point method for the first derivative
                  dvar(1, :) = (var(2, :) - var(1, :))/dt;
                  dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
                  dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
                  dvar(end - 1, :) = (var(end, :) - var(end - 2, :))/(2*dt);
-                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h 
+                 % main 5-point algorithm
                  dvar(3: end - 2, :) = (var(1:end - 4, :) - 8*var(2:end - 3, :) + 8*var(4:end - 1, :) - var(5:end, :))/12/dt;
              else
                  error('%s is not a recognized method', mode)
              end              
+         end
+         
+         function [time, ddvar] = calcSecondOrderDerivative(~, time, var, mode)
+             % calcSecondOrderDerivative: calculate the second derivation of
+             % time data: n x 1 array (will be returned at the output argument)
+             % var: n x dim array of m variables
+             % mode: 'center_5point'
+             % http://web.media.mit.edu/~crtaylor/calculator.html
+             dt = time(2) - time(1);
+             ddvar = zeros(size(var));
+             if strcmp(mode, 'center_5point')
+                 % edge 0,1,2 -> f_xx = (1*f[i+0]-2*f[i+1]+1*f[i+2])/(1*1.0*h**2)
+                 ddvar(1, :) = (var(1, :) - 2*var(2, :) + var(3, :))/dt^2; 
+                 ddvar(2, :) = (var(2, :) - 2*var(3, :) + var(4, :))/dt^2; 
+                 % edge end - 2, end - 1, end -> f_xx = (1*f[i-2]-2*f[i-1]+1*f[i+0])/(1*1.0*h**2)
+                 ddvar(end, :) = (var(end - 2, :) - 2*var(end - 1, :) + var(end, :))/dt^2;   
+                 ddvar(end - 1, :) = (var(end - 3, :) - 2*var(end - 2, :) + var(end - 1, :))/dt^2;
+                 % major -2,-1,0,1,2  -> f_xx = (-1*f[i-2]+16*f[i-1]-30*f[i+0]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
+                 ddvar(3: end - 2, :) = (-var(1:end - 4, :) + 16*var(2:end - 3, :) ...
+                     - 30*var(3:end - 2, :) + 16*var(4:end - 1, :) - var(5:end, :))/12/dt^2;
+             else
+                 error('%s is not a recognized method', mode)
+             end
          end
 
         %% Visualization

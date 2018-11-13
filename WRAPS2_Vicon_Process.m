@@ -87,7 +87,7 @@ plot(time, var); hold on
 legend('x', 'y', 'z')
 subplot(2,1, 2);
 plot(time, dvar_cen, '--'); hold on
-legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt', 'v_x,cent', 'v_y,cent', 'v_z,cent')
+legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
 % plot(time, dvar_bwd, ':r'); 
 % plot(time, dvar_cen, '--b'); 
 
@@ -97,37 +97,130 @@ legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt', 'v_x,cent', 'v_y,cent', 'v_z
 % [2] A. Page, H. de Rosario, V. Mata, R. Porcar, J. Solaz, and M. J. Such, “Kinematics of the 
 % trunk in sitting posture: An analysis based on the instantaneous axis of rotation,” Ergonomics, 
 % vol. 52, no. 6, pp. 695–706, Jun. 2009.
-pelvis_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(1).marker_pos;
-thorax_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(2).marker_pos;
-T = 0: 1/sbj1.freq_marker : (length(pelvis_brace_marker_pos) - 1)/sbj1.freq_marker;
-var = pelvis_brace_marker_pos(:,3,4);
-P = zeros(length(T), 2);
-h = 0.05;
+% pelvis_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(1).marker_pos;
+% thorax_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(2).marker_pos;
+% T = 0: 1/sbj1.freq_marker : (length(pelvis_brace_marker_pos) - 1)/sbj1.freq_marker;
+% var = pelvis_brace_marker_pos(:,3,4);
+% P = zeros(length(T), 2);
+% h = 0.05;
+% 
+% for i = 1:length(T)
+%     [p,S,mu] = localCubicRegression(T(i), T', var, h);
+%     P(i, :) = p(3:-1:2);
+% end
+% 
+% % diff method
+% [~, dvar_P] = sbj1.calcFirstOrderDerivative(T, var, 'center');
+% 
+% % close all;
+% figure;
+% % position y
+% plot(T, var); hold on
+% plot(T, P(:,1));
+% legend('raw', 'cubic filter');
+% 
+% [time, dvar_cen5] = sbj1.calcFirstOrderDerivative(time, P(:,1), 'center_5point');
+% figure;
+% % velocity y
+% plot(T, dvar_P); hold on
+% plot(T, dvar_cen5); 
+% legend('diff raw', 'cubic filter')
+% 
+% 
+% figure;
+% T_diff = 10*ones(size(T)) - T;
+% W = 1./sqrt(2*pi)*exp(-(T_diff.^2/(2*h^2)));
+% hold on;
+% plot(T_diff, W)
 
-for i = 1:length(T)
-    [p,S,mu] = localCubicRegression(T(i), T', var, h);
-    P(i, :) = p(3:-1:2);
-end
+%% Try other filtering techniques
+% use point from thorax rings
+t_marker_pos_filt = sbj1.raw_data(trial_no).marker_data(2).marker_pos;
+t_marker_pos_raw = sbj1.raw_data(trial_no).marker_data(2).marker_pos_raw;
+T = 0: 1/sbj1.freq_marker : (length(t_marker_pos_filt) - 1)/sbj1.freq_marker;
 
-% diff method
-[~, dvar_P] = sbj1.calcFirstOrderDerivative(T, var, 'center');
+marker_no = 1;
 
-% close all;
+var_raw = t_marker_pos_raw(:,:,marker_no); % raw
+
+var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
+
+% take the first derivative
+[T, dvar_filt_6hzbutter] = sbj1.calcFirstOrderDerivative(T, var_filt, 'center_5point');
+[T, dvar_raw] = sbj1.calcFirstOrderDerivative(T, var_raw, 'center_5point');
+[T, ddvar_filt_6hzbutter] = sbj1.calcSecondOrderDerivative(T, var_filt, 'center_5point');
+[T, ddvar_raw] = sbj1.calcSecondOrderDerivative(T, var_raw, 'center_5point');
+
+% plot all results
 figure;
-% position y
-plot(T, var); hold on
-plot(T, P(:,1));
-legend('raw', 'cubic filter');
+title_font_size = 15;
+% plot v_x, v_y, v_z
+raw_v_alpha = 0.25;
+subplot(3,2,1)
+p_raw_x = plot(T, dvar_raw(:, 1), 'k'); hold on; 
+plot(T, dvar_filt_6hzbutter(:, 1), 'r');
+title('$v_x$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_x.Color(4) = 0.25;
+xlim([0 T(end)]);
+ylabel('$mm/s$', 'Interpreter', 'latex');
+grid on; grid minor;
 
-figure;
-% velocity y
-plot(T, dvar_P); hold on
-plot(T, P(:,2)); 
-legend('diff raw', 'cubic filter');
+subplot(3,2,3)
+p_raw_y = plot(T, dvar_raw(:, 2), 'k'); hold on; 
+plot(T, dvar_filt_6hzbutter(:, 2), 'g');
+title('$v_y$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_y.Color(4) = 0.25;
+xlim([0 T(end)]);
+ylabel('$mm/s$', 'Interpreter', 'latex');
+grid on;  grid minor;
 
-figure;
-T_diff = 10*ones(size(T)) - T;
-W = 1./sqrt(2*pi)*exp(-(T_diff.^2/(2*h^2)));
-hold on;
-plot(T_diff, W)
+subplot(3,2,5)
+p_raw_z = plot(T, dvar_raw(:, 3), 'k'); hold on; 
+plot(T, dvar_filt_6hzbutter(:, 3), 'b');
+title('$v_z$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_z.Color(4) = 0.25;
+xlim([0 T(end)]);
+xlabel('time (s)', 'Interpreter', 'latex')
+ylabel('$mm/s$', 'Interpreter', 'latex');
+grid on;  grid minor;
+
+% plot a_x, a_y, a_z
+raw_a_alpha = 0.1;
+raw_filt_ylim_ratio = 20;
+
+subplot(3,2,2)
+p_raw_x = plot(T, ddvar_raw(:, 1), 'k'); hold on; 
+plot(T, ddvar_filt_6hzbutter(:, 1), 'r');
+title('$a_x$', 'Interpreter', 'latex', 'fontsize', title_font_size);
+p_raw_x.Color(4) = raw_a_alpha;
+xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio); % symmetric ylim
+ylabel('$mm/s^2$', 'Interpreter', 'latex');
+grid on;  grid minor;
+
+subplot(3,2,4)
+p_raw_y = plot(T, ddvar_raw(:, 2), 'k'); hold on; 
+plot(T, ddvar_filt_6hzbutter(:, 2), 'g');
+title('$a_y$', 'Interpreter', 'latex', 'fontsize', title_font_size);
+p_raw_y.Color(4) = raw_a_alpha;
+xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio);
+ylabel('$mm/s^2$', 'Interpreter', 'latex')
+grid on;  grid minor;
+
+subplot(3,2,6)
+p_raw_z = plot(T, ddvar_raw(:, 3), 'k'); hold on; 
+plot(T, ddvar_filt_6hzbutter(:, 3), 'b');
+title('$a_z$', 'Interpreter', 'latex', 'fontsize', title_font_size);
+p_raw_z.Color(4) = raw_a_alpha;
+xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio);
+xlabel('time (s)', 'Interpreter', 'latex');
+ylabel('$mm/s^2$', 'Interpreter', 'latex');
+grid on;  grid minor;
+
+
 
