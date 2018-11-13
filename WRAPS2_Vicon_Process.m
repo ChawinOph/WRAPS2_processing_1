@@ -87,7 +87,7 @@ plot(time, var); hold on
 legend('x', 'y', 'z')
 subplot(2,1, 2);
 plot(time, dvar_cen, '--'); hold on
-legend('v_x', 'v_y', 'v_z')
+legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt', 'v_x,cent', 'v_y,cent', 'v_z,cent')
 % plot(time, dvar_bwd, ':r'); 
 % plot(time, dvar_cen, '--b'); 
 

@@ -1169,7 +1169,7 @@ classdef Subject < handle
                  dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
                  dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
                  dvar(end - 1, :) = (var(end, :) - var(end - 2, :))/(2*dt);
-                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h - used 
+                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h 
                  dvar(3: end - 2, :) = (var(1:end - 4, :) - 8*var(2:end - 3, :) + 8*var(4:end - 1, :) - var(5:end, :))/12/dt;
              else
                  error('%s is not a recognized method', mode)
