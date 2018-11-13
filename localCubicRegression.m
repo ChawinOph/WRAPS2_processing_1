@@ -53,7 +53,7 @@ if ~isequal(size(T),size(X))
     error(message('MATLAB:polyfit:XYSizeMismatch'))
 end
 
-n = 3; % always use cubic
+n = 2; % always use cubic
 T = T(:); % total time series of data (flatten the array along the first dimension (row))
 X = X(:); % total data points
 

@@ -79,13 +79,14 @@ var = reshape(T(1:3, 4, :), 3, [])';
 [time, dvar_fwd] = sbj1.calcFirstOrderDerivative(time, var, 'forward');
 [time, dvar_bwd] = sbj1.calcFirstOrderDerivative(time, var, 'backward');
 [time, dvar_cen] = sbj1.calcFirstOrderDerivative(time, var, 'center');
+[time, dvar_cen5] = sbj1.calcFirstOrderDerivative(time, var, 'center_5point');
 
 figure;
 subplot(2,1,1);
 plot(time, var); hold on
 legend('x', 'y', 'z')
 subplot(2,1, 2);
-plot(time, dvar_fwd);
+plot(time, dvar_cen, '--'); hold on
 legend('v_x', 'v_y', 'v_z')
 % plot(time, dvar_bwd, ':r'); 
 % plot(time, dvar_cen, '--b'); 
@@ -105,13 +106,13 @@ h = 0.05;
 
 for i = 1:length(T)
     [p,S,mu] = localCubicRegression(T(i), T', var, h);
-    P(i, :) = p(4:-1:3);
+    P(i, :) = p(3:-1:2);
 end
 
 % diff method
 [~, dvar_P] = sbj1.calcFirstOrderDerivative(T, var, 'center');
 
-close all;
+% close all;
 figure;
 % position y
 plot(T, var); hold on

@@ -69,11 +69,11 @@ classdef Subject < handle
             % Apply filter
             M_trim = rmmissing(M_raw);
             
-            % Create the low-pass filter (4th order Butterworth)
+            % Create the low-pass filter (2nd order Butterworth or 4th order)
             Fs = this.freq_marker; %this is the sampling frequency (frame rate)
-            Fc = 6; %this is the cutoff frequency for the low-pass filter.
-            Wn = (Fc*2)/Fs;
-            [b,a] = butter(4, Wn);
+            Fc = 6; %this is the cutoff frequency (6 Hz by default) for the low-pass filter.
+            Wn = (Fc*2)/Fs; % ratio of the cut-off freq and nyquist freq
+            [b,a] = butter(2, Wn);
             
             % Apply filter
             M_filt = filtfilt(b, a, M_trim);
@@ -1157,10 +1157,20 @@ classdef Subject < handle
              elseif strcmp(mode, 'center')
                  % calculate first order backward difference at the edges of the
                  % domain 
-                 dvar(1, :) = var(2, :) - var(1, :);
-                 dvar(end, :) = var(end, :) - var(end - 1, :);
-                 dvar(2: end - 1, :) = var(3:end, :) - var(1:end - 2, :);
-                 dvar = dvar/(2*dt);
+                 dvar(1, :) = (var(2, :) - var(1, :))/dt;
+                 dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
+                 dvar(2: end - 1, :) = (var(3:end, :) - var(1:end - 2, :))/(2*dt);
+             elseif strcmp(mode, 'center_5point')
+                 % calculate first order backward difference at the edges of the
+                 % domain and center at the second and the second before
+                 % that last point
+                 % five point method for the first derivative
+                 dvar(1, :) = (var(2, :) - var(1, :))/dt;
+                 dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
+                 dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
+                 dvar(end - 1, :) = (var(end, :) - var(end - 2, :))/(2*dt);
+                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h - used 
+                 dvar(3: end - 2, :) = (var(1:end - 4, :) - 8*var(2:end - 3, :) + 8*var(4:end - 1, :) - var(5:end, :))/12/dt;
              else
                  error('%s is not a recognized method', mode)
              end              
