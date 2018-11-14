@@ -153,15 +153,20 @@ var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 
 % [1] F. J. Alonso, J. M. Del Castillo, and P. Pintado, “An Automatic
 % Filtering Procedure for Processing Biomechanical Kinematic Signals,”
-% Springer, Berlin, Heidelberg, 2004, pp. 281–291. 
-% [2] R. Aissaoui, S. Husse, H. Mecheri, G. Parent, and J. a. D. Guise,
-% “Automatic filtering techniques for three-dimensional kinematics data
-% using 3D motion capture system,” in 2006 IEEE International Symposium on
-% Industrial Electronics, 2006, vol. 1, pp. 614–619. 
-% (Golyandina et al., 2001, Chapter 6 has the suggestion for choosing window length).
+% Springer, Berlin, Heidelberg, 2004, pp. 281–291. [2] R. Aissaoui, S.
+% Husse, H. Mecheri, G. Parent, and J. a. D. Guise, “Automatic filtering
+% techniques for three-dimensional kinematics data using 3D motion capture
+% system,” in 2006 IEEE International Symposium on Industrial Electronics,
+% 2006, vol. 1, pp. 614–619. (Golyandina et al., 2001, Chapter 6 has the
+% suggestion for choosing window length). 
+% [1] N. Golyandina, V. Nekrutkin, and A. A. Zhigljavsky, Analysis of time
+% series structure: SSA and related techniques. Boca Raton, Florida:
+% Chapman and Hall/CRC, 2001.
+
+dof = 2; % y component
+var_raw_1d = var_raw(:, dof); % use y
 
 % Step 1 Embedding
-var_raw_1d = var_raw(:, 2); % use y
 N = length(var_raw_1d); % signal length
 L = round(N/60); % signal length (suggested round(N/60))
 %  construct the Hankel matrix (for 1D data), the element in i+j = constant
@@ -169,14 +174,63 @@ L = round(N/60); % signal length (suggested round(N/60))
 X = hankel(var_raw_1d(1:L), var_raw_1d(L: end)); % (size L x N - L + 1)
 
 % Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
-% S = X*X'; [eigvec, eig_diag] = eig(S);
+% S = X*X'; [eigvec, eig_diag] = eig(S); % Sigma =
+% diag(sqrt(sort(diag((eig_diag)), 'descend')))
 [U,Sigma,V] = svd(X); 
 
-% Step 3 Grouping
-r = 10; % number of first elementary matrices used (r <= L)
-X_est = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
+% Step 3 Grouping (Eigentriple grouping)
+% grouping with eigenvalues that contribute to 99.999% of the sum
+eig_sum_threshold =  99.999/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
+for r = 4:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+    if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
+        break;
+    end
+end
+% rank truncation 
+Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
 
 % Step 4: Reconstruction (Diagonal Averaging)
+K = size(Y, 2);
+L_star = min([K, L]); K_star = max([K, L]);
+g = zeros(N, 1); % N = L_star + K_star - 1 = L + K - 1;
+for k = 1:N
+    diag_sum = 0; % reset the summation for the new g(k)
+    if 1 <= k && k < L_star % perform L_star - 1 time in this case
+       for m = 1 : k 
+           diag_sum = diag_sum + Y(m, k + 1 - m);
+       end
+       diag_avg = diag_sum/k; % find the diagonal avg for the g(k)
+    elseif L_star <= k && k < K_star + 1 % perform K_star - L_star + 1 time in this case
+       for m = 1 : L_star % perfom 
+           diag_sum = diag_sum + Y(m, k + 1 - m);
+       end
+       diag_avg = diag_sum/L_star; % find the diagonal avg for the g(k)
+    elseif K_star + 1 <= k && k <= N % perfrom L_star - 1 time in this case
+       for m = k + 1 - K_star: N + 1 - K_star 
+           diag_sum = diag_sum + Y(m, k + 1 - m);
+       end
+       diag_avg = diag_sum/(N - k + 1); % find the diagonal avg for the g(k)
+    end
+    g(k) = diag_avg;
+end
+[T, ddotg_new] = sbj1.calcSecondOrderDerivative(T, g, 'center_5point');
+rms_ddotg_new = rms(ddotg_new);
+
+var_filt_SSA = g;
+[T, dvar_filt_SSA] = sbj1.calcFirstOrderDerivative(T, var_filt_SSA, 'center_5point');
+[T, ddvar_filt_SSA] = sbj1.calcSecondOrderDerivative(T, var_filt_SSA, 'center_5point');
+
+figure;
+plot(T, dvar_raw(:,dof)); hold on
+plot(T, dvar_filt_6hzbutter(:,dof)); 
+plot(T, dvar_filt_SSA);
+legend('raw', 'butter', 'SSA')
+
+figure;
+plot(T, ddvar_raw(:,dof)); hold on
+plot(T, ddvar_filt_6hzbutter(:,dof)); 
+plot(T, ddvar_filt_SSA);
+legend('raw', 'butter', 'SSA')
 
 
 %% plot all results
