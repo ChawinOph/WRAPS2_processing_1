@@ -50,11 +50,11 @@ classdef Subject < handle
         %% Import data
         function importMarkerData_csv(this, trial_no, trial_file_names, sorted_segment_names, sorted_marker_names, removed_marker_names)
             % ImportMarkerData
-            %   foldername: folder that stores the text files imported from VICON
-            %   textfilename: name of a text file (without .csv)
+            %   foldername: folder that stores the text files imported from
+            %   VICON textfilename: name of a text file (without .csv)
             %
-            %   This script filters data with a 4th order butterworth low-pass filter, and
-            %   then sorts by by marker or time.
+            %   This script filters data with a 4th order butterworth
+            %   low-pass filter, and then sorts by by marker or time.
             
             % store trial name
             this.raw_data(trial_no).marker_trial_name =  trial_file_names{this.sbj_index};
@@ -69,14 +69,19 @@ classdef Subject < handle
             % Apply filter
             M_trim = rmmissing(M_raw);
             
+            %% Insert an automatic filter here to determine the best cutoff freq
+            
+            
+            %%
+            
             % Create the low-pass filter (2nd order Butterworth)
             Fs = this.freq_marker; %this is the sampling frequency (frame rate)
             Fc = 6; % this is the cutoff frequency (6 Hz by default) for the low-pass filter.
             Wn = (Fc*2)/Fs; % ratio of the cut-off freq and nyquist freq
             [b,a] = butter(2, Wn);
             
-            % Apply filter (equivalent to 4th order zero-lag lowpass)
-            % refer to https://www.mathworks.com/help/signal/ref/filtfilt.html
+            % Apply filter (equivalent to 4th order zero-lag lowpass) refer
+            % to https://www.mathworks.com/help/signal/ref/filtfilt.html
             M_filt = filtfilt(b, a, M_trim);
             
             % Import headername for sorting
@@ -125,11 +130,11 @@ classdef Subject < handle
         
         function importForcePlateData_csv(this, trial_no, trial_file_names, sorted_forceplate_names, sorted_forceplate_var_names)
             % ImportForcePlateData
-            %   foldername: folder that stores the text files imported from VICON
-            %   textfilename: name of a text file (without .txt)
+            %   foldername: folder that stores the text files imported from
+            %   VICON textfilename: name of a text file (without .txt)
             %
-            %   This script filters data with a 4th order butterworth low-pass filter, and
-            %   then sorts by by marker or time.
+            %   This script filters data with a 4th order butterworth
+            %   low-pass filter, and then sorts by by marker or time.
             % Setup file directory
             d = dir([this.sbj_folder_name,'\', this.vicon_folder_name, '\', trial_file_names{this.sbj_index}, '.csv']);
             filename = [d.folder '\' d.name];
@@ -149,8 +154,7 @@ classdef Subject < handle
             % Apply filter
             F_filt = filtfilt(b, a, F_trim);
             
-            % Get a list of all marker names
-            % Import headername for sorting
+            % Get a list of all marker names Import headername for sorting
             F_headers = importdata(filename,',',3);
             
             % split header name
@@ -237,8 +241,9 @@ classdef Subject < handle
                     used_marker_indcs = [used_marker_indcs, find(strcmp(this.raw_data(trial_no).marker_data(segment_no).marker_names, ...
                         this.sbj_marker_cluster_pos(cluster_no).marker_names{i}))]; %#ok<AGROW>
                 else
-                    % if the name is not found, remove the name in the stored trial transform data in WRAPS2 obj.
-                    % and also the respectiive column of marker_static_pos
+                    % if the name is not found, remove the name in the
+                    % stored trial transform data in WRAPS2 obj. and also
+                    % the respectiive column of marker_static_pos
                     original_marker_names = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_names;
                     original_static_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;
                     new_marker_names = original_marker_names(~strcmp(original_marker_names, original_marker_names{i}));
@@ -248,8 +253,8 @@ classdef Subject < handle
                 end
             end
             
-            % store the 3d matrix of marker pos from the trial in the same order as
-            % the static cluster pos
+            % store the 3d matrix of marker pos from the trial in the same
+            % order as the static cluster pos
             vicon_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos(:, :, used_marker_indcs);
             cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;
             
@@ -349,10 +354,14 @@ classdef Subject < handle
             end
             
             % get raw marker positions
-            %             % not using hip markers right now
-            %             pelvis_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Pelvis');
-            %             P_Hip_R_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_R');
-            %             P_Hip_L_raw_indx = strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names, 'P_Hip_L');
+            %             % not using hip markers right now pelvis_raw_indx
+            %             =
+            %             strcmp({this.raw_data(trial_no).marker_data.segment_names},
+            %             'Pelvis'); P_Hip_R_raw_indx =
+            %             strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names,
+            %             'P_Hip_R'); P_Hip_L_raw_indx =
+            %             strcmp(this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_names,
+            %             'P_Hip_L');
             
             thorax_raw_indx = strcmp({this.raw_data(trial_no).marker_data.segment_names}, 'Thorax');
             sternal_notch_raw_indx = strcmp(this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_names, 'T_SternalNotch');
@@ -364,8 +373,12 @@ classdef Subject < handle
             forehead_raw_indx = strcmp(this.raw_data(trial_no).marker_data(head_raw_indx).marker_names, 'H_Forehead');
             
             %             % not using hip markers right now
-            %             this.sbj_anthro(trial_no).landmark_pos(:,:,6) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_R_raw_indx);
-            %             this.sbj_anthro(trial_no).landmark_pos(:,:,7) = this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:, :, P_Hip_L_raw_indx);
+            %             this.sbj_anthro(trial_no).landmark_pos(:,:,6) =
+            %             this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:,
+            %             :, P_Hip_R_raw_indx);
+            %             this.sbj_anthro(trial_no).landmark_pos(:,:,7) =
+            %             this.raw_data(trial_no).marker_data(pelvis_raw_indx).marker_pos(:,
+            %             :, P_Hip_L_raw_indx);
             
             this.sbj_anthro(trial_no).landmark_pos(:,:,8) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, sternal_notch_raw_indx);
             this.sbj_anthro(trial_no).landmark_pos(:,:,9) = this.raw_data(trial_no).marker_data(thorax_raw_indx).marker_pos(:, :, C7_raw_indx);
@@ -393,9 +406,11 @@ classdef Subject < handle
             pos_m_psis = (pos_r_psis + pos_l_psis)/2;
             pos_m_asis = (pos_r_asis + pos_l_asis)/2;
             
-            % i - unit vector parallel to line connection between <r_asis, l_asis>
+            % i - unit vector parallel to line connection between <r_asis,
+            % l_asis>
             i_hat_pelvis = this.unitVecMat(pos_r_asis - pos_l_asis, 2);
-            % k - unit vector perpendicular to the plane of <r_asis, l_asis, m_psis>
+            % k - unit vector perpendicular to the plane of <r_asis,
+            % l_asis, m_psis>
             k_hat_pelvis = this.unitVecMat(cross((pos_r_asis - pos_m_psis),(pos_l_asis - pos_m_psis), 2), 2);
             % j - unit vector from the cross product j = k x i
             j_hat_pelvis = cross(k_hat_pelvis, i_hat_pelvis, 2);
@@ -409,9 +424,9 @@ classdef Subject < handle
                 this.createTransforms(origin_pelvis_distal, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
             
             %% find the estimate hip position from asis and psis pos
-            % R. B. Davis, S. Õunpuu, D. Tyburski, and J. R. Gage,
-            % “A gait analysis data collection and reduction technique,”
-            % Hum. Mov. Sci., vol. 10, no. 5, pp. 575–587, Oct. 1991.
+            % R. B. Davis, S. Õunpuu, D. Tyburski, and J. R. Gage, “A gait
+            % analysis data collection and reduction technique,” Hum. Mov.
+            % Sci., vol. 10, no. 5, pp. 575–587, Oct. 1991.
             
             % creat a the frame based on the reference
             T_v2masis = this.createTransforms(pos_m_asis, i_hat_pelvis, j_hat_pelvis, k_hat_pelvis);
@@ -467,9 +482,11 @@ classdef Subject < handle
             origin_lumbar_proxim = origin_pelvis_distal;
             origin_lumbar_distal = (pos_xp + pos_t8)/2;
             
-            % k - unit vector parallel to line connection between <origin_lumbar_proxim, origin_lumbar_distal>
+            % k - unit vector parallel to line connection between
+            % <origin_lumbar_proxim, origin_lumbar_distal>
             k_hat_lumbar = this.unitVecMat(origin_lumbar_distal - origin_lumbar_proxim, 2);
-            % i - unit vector perpendicular to the plane of <origin_lumbar_proxim, l_asis, m_psis>
+            % i - unit vector perpendicular to the plane of
+            % <origin_lumbar_proxim, l_asis, m_psis>
             i_hat_lumbar = this.unitVecMat(cross((pos_xp - origin_lumbar_proxim),(pos_t8 - origin_lumbar_proxim), 2), 2);
             % j - unit vector from the cross product j = k x i
             j_hat_lumbar = cross(k_hat_lumbar, i_hat_lumbar, 2);
@@ -490,9 +507,11 @@ classdef Subject < handle
             origin_thorax_proxim = origin_lumbar_distal;
             origin_thorax_distal = (pos_sn + pos_c7)/2;
             
-            % k - unit vector parallel to line connection between <origin_thorax_proxim, origin_thorax_distal>
+            % k - unit vector parallel to line connection between
+            % <origin_thorax_proxim, origin_thorax_distal>
             k_hat_thorax = this.unitVecMat(origin_thorax_distal - origin_thorax_proxim, 2);
-            % i - unit vector perpendicular to the plane of <origin_lumbar_proxim, l_asis, m_psis>
+            % i - unit vector perpendicular to the plane of
+            % <origin_lumbar_proxim, l_asis, m_psis>
             i_hat_thorax = this.unitVecMat(cross((pos_sn - origin_thorax_proxim),(pos_c7 - origin_thorax_proxim), 2), 2);
             % j - unit vector from the cross product j = k x i
             j_hat_thorax = cross(k_hat_thorax, i_hat_thorax, 2);
@@ -513,9 +532,11 @@ classdef Subject < handle
             origin_head_proxim = origin_thorax_distal;
             origin_head_distal = pos_vt;
             
-            % k - unit vector parallel to line connection between <origin_head_proxim, origin_head_distal>
+            % k - unit vector parallel to line connection between
+            % <origin_head_proxim, origin_head_distal>
             k_hat_head = this.unitVecMat(origin_head_distal - origin_head_proxim, 2);
-            % i - unit vector perpendicular to the plane of <origin_lumbar_proxim, l_asis, m_psis>
+            % i - unit vector perpendicular to the plane of
+            % <origin_lumbar_proxim, l_asis, m_psis>
             i_hat_head = this.unitVecMat(cross((pos_fh - origin_head_proxim),(origin_head_distal - origin_head_proxim), 2), 2);
             % j - unit vector from the cross product j = k x i
             j_hat_head = cross(k_hat_head, i_hat_head, 2);
@@ -694,7 +715,8 @@ classdef Subject < handle
             l_heel2ankle = this.sbj_anthro_measurement.measurement_table(heel2ankle_indx).length_mm;
             l_ankle2ground = this.sbj_anthro_measurement.measurement_table(ankle2ground_indx).length_mm;
             
-            % ankle rotation (sphrical joint but limit in x rotation for now)
+            % ankle rotation (sphrical joint but limit in x rotation for
+            % now)
             T_shank_r_distal2foot_r_proxim = this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), zeros(trial_length, 1));
             T_shank_l_distal2foot_l_proxim = this.createRotationAxisAngle(repmat([1 0 0], trial_length, 1), zeros(trial_length, 1));
             
@@ -721,9 +743,9 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l = T_v2heel_l;
             
             %% Correct the lower limb configuration using inverse kinematics
-            % store the first proximal foot frame transformation and use
-            % it as the starting point of the inverse kinematics. This
-            % idea is based on the fixed ankle assumption
+            % store the first proximal foot frame transformation and use it
+            % as the starting point of the inverse kinematics. This idea is
+            % based on the fixed ankle assumption
             T_v2foot_r_fix = repmat(T_v2foot_r_proxim(:, :, 1), 1, 1, trial_length);
             T_v2foot_l_fix = repmat(T_v2foot_l_proxim(:, :, 1), 1, 1, trial_length);
             
@@ -750,8 +772,7 @@ classdef Subject < handle
             T_v2heel_r = this.multiplyTransforms(T_v2foot_r_proxim, T_foot_r_proxim2heel_r);
             T_v2heel_l = this.multiplyTransforms(T_v2foot_l_proxim, T_foot_l_proxim2heel_l);
             
-            % store proximal and distal transforms into the structure
-            % thigh
+            % store proximal and distal transforms into the structure thigh
             this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).T_v2seg_proxim = T_v2thigh_r_proxim;
             this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).T_v2seg_distal = T_v2thigh_r_distal;
             this.sbj_anthro(trial_no).body_segment_transform(thigh_l_segment_indx).T_v2seg_proxim = T_v2thigh_l_proxim;
@@ -778,9 +799,9 @@ classdef Subject < handle
         %% Inverse kinematic for lower limb positions
         function [T_hip2thigh_prox, T_thigh_dist2shank_prox, T_shank_dis2foot_prox] = inverseKinLowerLimbs(this, T_v2hip, T_v2foot_fix, l_thigh, l_shank)
             % inverseKinLowerLimbs: calculate reverse joint angles of the
-            %   from the position of the moving hip wrt proximal ankle frame
-            %   and calculate the transformation matrices from the hip to the
-            %   ankle joint in the forward manner
+            %   from the position of the moving hip wrt proximal ankle
+            %   frame and calculate the transformation matrices from the
+            %   hip to the ankle joint in the forward manner
             % the kinematic chains from ankle to hip is Uyx->Rx->S(hip)
             
             pos_hip_wrt_foot_fix = this.calcPosInNewFrame(T_v2foot_fix, reshape(T_v2hip(1:3, 4, :), 3, [])');
@@ -928,8 +949,7 @@ classdef Subject < handle
             T_v2hand_L_distal = this.sbj_anthro(trial_no).body_segment_transform(hand_l_segment_indx).T_v2seg_distal;
             
             
-            % proximal joints are superior frames this case
-            % upper limbs
+            % proximal joints are superior frames this case upper limbs
             [T_v2cm_uarm_R, pos_cm_uarm_R] = this.calcLimbCMTranforms(T_v2uarm_R_proxim, T_v2uarm_R_distal, cm_pos_ratio_uarm_prox2dist);
             [T_v2cm_uarm_L, pos_cm_uarm_L] = this.calcLimbCMTranforms(T_v2uarm_L_proxim, T_v2uarm_L_distal, cm_pos_ratio_uarm_prox2dist);
             [T_v2cm_farm_R, pos_cm_farm_R] = this.calcLimbCMTranforms(T_v2farm_R_proxim, T_v2farm_R_distal, cm_pos_ratio_farm_prox2dist);
@@ -1034,8 +1054,8 @@ classdef Subject < handle
         end
         
         function unit_V = unitVecMat(~, vec_mat, vec_dim)
-            % UnitVecmat: Calculate the unit vector from a Matrix of
-            % n vectors (if n x 3: use vec_dim = 2; 3 x n: use vec_dim = 1)
+            % UnitVecmat: Calculate the unit vector from a Matrix of n
+            % vectors (if n x 3: use vec_dim = 2; 3 x n: use vec_dim = 1)
             unit_V = vec_mat./vecnorm(vec_mat, 2, vec_dim); % norm of each row
         end
         
@@ -1048,8 +1068,7 @@ classdef Subject < handle
         end
         
         function T_3dmat = createRotationAxisAngle(this, axis_mat, angle)
-            % axis_mat: n x 3 double array
-            % angle: 1 x n double array (rad)
+            % axis_mat: n x 3 double array angle: 1 x n double array (rad)
             T_3dmat = repmat(eye(4), 1, 1, length(axis_mat));
             w = this.unitVecMat(axis_mat, 2); % normalize the axis vectors
             for i = 1:length(axis_mat)
@@ -1145,9 +1164,9 @@ classdef Subject < handle
          %% Kinematics Functions
          function [time, dvar] = calcFirstOrderDerivative(~, time, var, mode)
              % calcFirstOrderDerivative: calculate the first derivation of
-             % time data: n x 1 array (will be returned at the output argument)
-             % var: n x dim array of m variables
-             % mode: 'forward', 'backward', or 'center', or 'center_5point' 
+             % time data: n x 1 array (will be returned at the output
+             % argument) var: n x dim array of m variables mode: 'forward',
+             % 'backward', or 'center', or 'center_5point'
              dt = time(2) - time(1);
              dvar = zeros(size(var));
              if strcmp(mode, 'forward')
@@ -1159,17 +1178,17 @@ classdef Subject < handle
                  dvar(2:end, :) = diff(var);
                  dvar = dvar/dt;
              elseif strcmp(mode, 'center')
-                 % calculate first order backward difference at the edges of the
-                 % domain 
+                 % calculate first order backward difference at the edges
+                 % of the domain
                  dvar(1, :) = (var(2, :) - var(1, :))/dt;
                  dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
                  dvar(2: end - 1, :) = (var(3:end, :) - var(1:end - 2, :))/(2*dt);
              elseif strcmp(mode, 'center_5point')
                  % five point method for the first derivative
                  %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h
-                 % calculate first order backward difference at the edges of the
-                 % domain and center at the second and the second before
-                 % that last point
+                 % calculate first order backward difference at the edges
+                 % of the domain and center at the second and the second
+                 % before that last point
                  dvar(1, :) = (var(2, :) - var(1, :))/dt;
                  dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
                  dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
@@ -1182,21 +1201,24 @@ classdef Subject < handle
          end
          
          function [time, ddvar] = calcSecondOrderDerivative(~, time, var, mode)
-             % calcSecondOrderDerivative: calculate the second derivation of
-             % time data: n x 1 array (will be returned at the output argument)
-             % var: n x dim array of m variables
-             % mode: 'center_5point'
+             % calcSecondOrderDerivative: calculate the second derivation
+             % of time data: n x 1 array (will be returned at the output
+             % argument) var: n x dim array of m variables mode:
+             % 'center_5point'
              % http://web.media.mit.edu/~crtaylor/calculator.html
              dt = time(2) - time(1);
              ddvar = zeros(size(var));
              if strcmp(mode, 'center_5point')
-                 % edge 0,1,2 -> f_xx = (1*f[i+0]-2*f[i+1]+1*f[i+2])/(1*1.0*h**2)
+                 % edge 0,1,2 -> f_xx =
+                 % (1*f[i+0]-2*f[i+1]+1*f[i+2])/(1*1.0*h**2)
                  ddvar(1, :) = (var(1, :) - 2*var(2, :) + var(3, :))/dt^2; 
                  ddvar(2, :) = (var(2, :) - 2*var(3, :) + var(4, :))/dt^2; 
-                 % edge end - 2, end - 1, end -> f_xx = (1*f[i-2]-2*f[i-1]+1*f[i+0])/(1*1.0*h**2)
+                 % edge end - 2, end - 1, end -> f_xx =
+                 % (1*f[i-2]-2*f[i-1]+1*f[i+0])/(1*1.0*h**2)
                  ddvar(end, :) = (var(end - 2, :) - 2*var(end - 1, :) + var(end, :))/dt^2;   
                  ddvar(end - 1, :) = (var(end - 3, :) - 2*var(end - 2, :) + var(end - 1, :))/dt^2;
-                 % major -2,-1,0,1,2  -> f_xx = (-1*f[i-2]+16*f[i-1]-30*f[i+0]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
+                 % major -2,-1,0,1,2  -> f_xx =
+                 % (-1*f[i-2]+16*f[i-1]-30*f[i+0]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
                  ddvar(3: end - 2, :) = (-var(1:end - 4, :) + 16*var(2:end - 3, :) ...
                      - 30*var(3:end - 2, :) + 16*var(4:end - 1, :) - var(5:end, :))/12/dt^2;
              else
@@ -1243,7 +1265,9 @@ classdef Subject < handle
             coordinate_scale = 50;
             % pelvis
             pelvis_segment_indx = strcmp({this.sbj_anthro(trial_no).body_segment_transform.segment_name}, 'Pelvis');
-            %             Tp1 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:, viz_time_step);
+            %             Tp1 =
+            %             this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_proxim(:,:,
+            %             viz_time_step);
             Tp2 = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal(:,:, viz_time_step);
             %             this.plotCoordinateTransform(Tp1, 150)
             Thip_r = this.sbj_anthro(trial_no).body_segment_transform(pelvis_segment_indx).T_v2seg_distal_aux_r(:,:, viz_time_step);
@@ -1569,7 +1593,8 @@ classdef Subject < handle
             scatter3(init_thorax_marker_pos(1, :), init_thorax_marker_pos(2, :), init_thorax_marker_pos(3, :))
             
             title(this.raw_data(trial_no).marker_trial_name)
-            %             for time_step = 1: 100 : length(this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
+            %             for time_step = 1: 100 :
+            %             length(this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg)
             T_v2pelvis = this.sbj_WRAPS2(trial_no).trial_transform_data(pelvis_cluster_no).transforms_vicon2seg(:,:,viz_time_step);
             T_v2thorax = this.sbj_WRAPS2(trial_no).trial_transform_data(thorax_cluster_no).transforms_vicon2seg(:,:,viz_time_step);
             this.plotCoordinateTransform(T_v2pelvis, 75);

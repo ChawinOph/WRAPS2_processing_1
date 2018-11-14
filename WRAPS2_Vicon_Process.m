@@ -92,11 +92,12 @@ legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
 % plot(time, dvar_cen, '--b'); 
 
 %% smooth the marker pos on the brace before finding the velocities of each marker and IARs
-% [1] A. Page, P. Candelas, and F. Belmar, “On the use of local fitting techniques 
-% for the analysis of physical dynamic systems,” Eur. J. Phys., vol. 27, no. 2, p. 273, 2006.
-% [2] A. Page, H. de Rosario, V. Mata, R. Porcar, J. Solaz, and M. J. Such, “Kinematics of the 
-% trunk in sitting posture: An analysis based on the instantaneous axis of rotation,” Ergonomics, 
-% vol. 52, no. 6, pp. 695–706, Jun. 2009.
+% [1] A. Page, P. Candelas, and F. Belmar, “On the use of local fitting
+% techniques for the analysis of physical dynamic systems,” Eur. J. Phys.,
+% vol. 27, no. 2, p. 273, 2006. [2] A. Page, H. de Rosario, V. Mata, R.
+% Porcar, J. Solaz, and M. J. Such, “Kinematics of the trunk in sitting
+% posture: An analysis based on the instantaneous axis of rotation,”
+% Ergonomics, vol. 52, no. 6, pp. 695–706, Jun. 2009.
 % pelvis_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(1).marker_pos;
 % thorax_brace_marker_pos = sbj1.sbj_WRAPS2(trial_no).trial_transform_data(2).marker_pos;
 % T = 0: 1/sbj1.freq_marker : (length(pelvis_brace_marker_pos) - 1)/sbj1.freq_marker;
@@ -151,7 +152,12 @@ var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 [T, ddvar_filt_6hzbutter] = sbj1.calcSecondOrderDerivative(T, var_filt, 'center_5point');
 [T, ddvar_raw] = sbj1.calcSecondOrderDerivative(T, var_raw, 'center_5point');
 
-% plot all results
+% [1] F. J. Alonso, J. M. Del Castillo, and P. Pintado, “An Automatic
+% Filtering Procedure for Processing Biomechanical Kinematic Signals,”
+% Springer, Berlin, Heidelberg, 2004, pp. 281–291.
+
+
+%% plot all results
 figure;
 title_font_size = 15;
 % plot v_x, v_y, v_z
