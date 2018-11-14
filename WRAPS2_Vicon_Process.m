@@ -143,7 +143,6 @@ T = 0: 1/sbj1.freq_marker : (length(t_marker_pos_filt) - 1)/sbj1.freq_marker;
 marker_no = 1;
 
 var_raw = t_marker_pos_raw(:,:,marker_no); % raw
-
 var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 
 % take the first derivative
@@ -154,7 +153,30 @@ var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 
 % [1] F. J. Alonso, J. M. Del Castillo, and P. Pintado, “An Automatic
 % Filtering Procedure for Processing Biomechanical Kinematic Signals,”
-% Springer, Berlin, Heidelberg, 2004, pp. 281–291.
+% Springer, Berlin, Heidelberg, 2004, pp. 281–291. 
+% [2] R. Aissaoui, S. Husse, H. Mecheri, G. Parent, and J. a. D. Guise,
+% “Automatic filtering techniques for three-dimensional kinematics data
+% using 3D motion capture system,” in 2006 IEEE International Symposium on
+% Industrial Electronics, 2006, vol. 1, pp. 614–619. 
+% (Golyandina et al., 2001, Chapter 6 has the suggestion for choosing window length).
+
+% Step 1 Embedding
+var_raw_1d = var_raw(:, 2); % use y
+N = length(var_raw_1d); % signal length
+L = round(N/60); % signal length (suggested round(N/60))
+%  construct the Hankel matrix (for 1D data), the element in i+j = constant
+%  are equal (somtimes it referred to as the trajectory matrix)
+X = hankel(var_raw_1d(1:L), var_raw_1d(L: end)); % (size L x N - L + 1)
+
+% Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
+% S = X*X'; [eigvec, eig_diag] = eig(S);
+[U,Sigma,V] = svd(X); 
+
+% Step 3 Grouping
+r = 10; % number of first elementary matrices used (r <= L)
+X_est = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
+
+% Step 4: Reconstruction (Diagonal Averaging)
 
 
 %% plot all results
