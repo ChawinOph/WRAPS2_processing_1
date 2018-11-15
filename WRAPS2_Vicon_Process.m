@@ -136,24 +136,27 @@ legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
 
 %% Try other filtering techniques
 % use point from thorax rings
+trial_no = 4;
 t_marker_pos_filt = sbj1.raw_data(trial_no).marker_data(2).marker_pos;
 t_marker_pos_raw = sbj1.raw_data(trial_no).marker_data(2).marker_pos_raw;
 T = 0: 1/sbj1.freq_marker : (length(t_marker_pos_filt) - 1)/sbj1.freq_marker;
 
-marker_no = 1;
+marker_no = 5;
 
 var_raw = t_marker_pos_raw(:,:,marker_no); % raw
-var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
+var_filt_6hzbutter = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 
 % take the first derivative
-[T, dvar_filt_6hzbutter] = sbj1.calcFirstOrderDerivative(T, var_filt, 'center_5point');
+[T, dvar_filt_6hzbutter] = sbj1.calcFirstOrderDerivative(T, var_filt_6hzbutter, 'center_5point');
 [T, dvar_raw] = sbj1.calcFirstOrderDerivative(T, var_raw, 'center_5point');
-[T, ddvar_filt_6hzbutter] = sbj1.calcSecondOrderDerivative(T, var_filt, 'center_5point');
+[T, ddvar_filt_6hzbutter] = sbj1.calcSecondOrderDerivative(T, var_filt_6hzbutter, 'center_5point');
 [T, ddvar_raw] = sbj1.calcSecondOrderDerivative(T, var_raw, 'center_5point');
 
 % [1] F. J. Alonso, J. M. Del Castillo, and P. Pintado, “An Automatic
 % Filtering Procedure for Processing Biomechanical Kinematic Signals,”
-% Springer, Berlin, Heidelberg, 2004, pp. 281–291. [2] R. Aissaoui, S.
+% Springer, Berlin, Heidelberg, 2004, pp. 281–291. 
+%
+% [2] R. Aissaoui, S.
 % Husse, H. Mecheri, G. Parent, and J. a. D. Guise, “Automatic filtering
 % techniques for three-dimensional kinematics data using 3D motion capture
 % system,” in 2006 IEEE International Symposium on Industrial Electronics,
@@ -163,146 +166,202 @@ var_filt = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 % series structure: SSA and related techniques. Boca Raton, Florida:
 % Chapman and Hall/CRC, 2001.
 
-dof = 2; % y component
-var_raw_1d = var_raw(:, dof); % use y
-
-% Step 1 Embedding
-N = length(var_raw_1d); % signal length
-L = round(N/60); % signal length (suggested round(N/60))
-%  construct the Hankel matrix (for 1D data), the element in i+j = constant
-%  are equal (somtimes it referred to as the trajectory matrix)
-X = hankel(var_raw_1d(1:L), var_raw_1d(L: end)); % (size L x N - L + 1)
-
-% Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
-% S = X*X'; [eigvec, eig_diag] = eig(S); % Sigma =
-% diag(sqrt(sort(diag((eig_diag)), 'descend')))
-[U,Sigma,V] = svd(X); 
-
-% Step 3 Grouping (Eigentriple grouping)
-% grouping with eigenvalues that contribute to 99.999% of the sum
-eig_sum_threshold =  99.999/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
-for r = 4:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
-    if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
-        break;
+var_filt_SSA = zeros(size(var_raw));
+for dof =1:3 % y component
+    var_raw_1d = var_raw(:, dof); % use y
+    
+    g_prev = var_raw_1d;
+    [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
+    rms_ddotg_prev = rms(ddotg_prev);
+    
+    % recursively apply the SSA to the time series until change of the rms is
+    % smaller than 1% of the previous acceleration rms
+    N_max_iter = 10;
+    tic
+    for n = 1: N_max_iter
+        % Step 1 Embedding
+%         N = length(g_prev); % signal length
+%         L = round(N/60); % signal length (suggested round(N/60))
+        L = 10;
+        %  construct the Hankel matrix (for 1D data), the element in i+j = constant
+        %  are equal (somtimes it referred to as the trajectory matrix)
+        X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
+        
+        % Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
+        % S = X*X'; [eigvec, eig_diag] = eig(S); % cross check
+        % diag(sqrt(sort(diag((eig_diag)), 'descend'))) % cross check
+        [U, Sigma, V] = svd(X);
+        
+        % Step 3 Grouping (Eigentriple grouping) grouping with eigenvalues
+        % of S = X*X' that contribute to 99.999% of the sum
+        eig_sum_threshold =  99.999/100*trace((Sigma(1:size(Sigma, 1), 1:size(Sigma, 1))).^2);
+        for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+            if trace((Sigma(1:r + 1, 1:r + 1)).^2) > eig_sum_threshold
+                break;
+            end
+        end
+        % rank truncation for the approximation of X
+        Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
+        
+        % Step 4: Reconstruction (Diagonal Averaging)
+        g_curr = sbj1.calcDiagonalAverage_SSA(Y);
+        [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
+        rms_ddotg_curr = rms(ddotg_curr);
+        
+        % check the manitude chage of the rms
+        if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
+            break;
+        else
+            rms_ddotg_prev = rms_ddotg_curr;
+            g_prev = g_curr;
+        end
     end
+    toc
+    var_filt_SSA(:, dof) = g_curr;
 end
-% rank truncation 
-Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
 
-% Step 4: Reconstruction (Diagonal Averaging)
-K = size(Y, 2);
-L_star = min([K, L]); K_star = max([K, L]);
-g = zeros(N, 1); % N = L_star + K_star - 1 = L + K - 1;
-for k = 1:N
-    diag_sum = 0; % reset the summation for the new g(k)
-    if 1 <= k && k < L_star % perform L_star - 1 time in this case
-       for m = 1 : k 
-           diag_sum = diag_sum + Y(m, k + 1 - m);
-       end
-       diag_avg = diag_sum/k; % find the diagonal avg for the g(k)
-    elseif L_star <= k && k < K_star + 1 % perform K_star - L_star + 1 time in this case
-       for m = 1 : L_star % perfom 
-           diag_sum = diag_sum + Y(m, k + 1 - m);
-       end
-       diag_avg = diag_sum/L_star; % find the diagonal avg for the g(k)
-    elseif K_star + 1 <= k && k <= N % perfrom L_star - 1 time in this case
-       for m = k + 1 - K_star: N + 1 - K_star 
-           diag_sum = diag_sum + Y(m, k + 1 - m);
-       end
-       diag_avg = diag_sum/(N - k + 1); % find the diagonal avg for the g(k)
-    end
-    g(k) = diag_avg;
-end
-[T, ddotg_new] = sbj1.calcSecondOrderDerivative(T, g, 'center_5point');
-rms_ddotg_new = rms(ddotg_new);
-
-var_filt_SSA = g;
 [T, dvar_filt_SSA] = sbj1.calcFirstOrderDerivative(T, var_filt_SSA, 'center_5point');
 [T, ddvar_filt_SSA] = sbj1.calcSecondOrderDerivative(T, var_filt_SSA, 'center_5point');
 
-figure;
-plot(T, dvar_raw(:,dof)); hold on
-plot(T, dvar_filt_6hzbutter(:,dof)); 
-plot(T, dvar_filt_SSA);
-legend('raw', 'butter', 'SSA')
+% figure;
+% plot(T, dvar_raw(:,dof)); hold on
+% plot(T, dvar_filt_6hzbutter(:,dof)); 
+% plot(T, dvar_filt_SSA);
+% legend('raw', 'butter', 'SSA')
+% 
+% figure;
+% plot(T, ddvar_raw(:,dof)); hold on
+% plot(T, ddvar_filt_6hzbutter(:,dof)); 
+% plot(T, ddvar_filt_SSA);
+% legend('raw', 'butter', 'SSA')
 
-figure;
-plot(T, ddvar_raw(:,dof)); hold on
-plot(T, ddvar_filt_6hzbutter(:,dof)); 
-plot(T, ddvar_filt_SSA);
-legend('raw', 'butter', 'SSA')
-
-
-%% plot all results
+% plot all results
+close all;
 figure;
 title_font_size = 15;
+
+% plot displacement
+raw_filt_ylim_disp_ratio = 1;
+
+subplot(3,3,1)
+p_raw_x = plot(T, var_raw(:, 1), 'k'); hold on; 
+plot(T, var_filt_6hzbutter(:, 1), 'b');
+plot(T, var_filt_SSA(:, 1), 'r');
+title('$x$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_x.Color(4) = 1;
+xlim([0 T(end)]);
+% y_lim = ylim();
+% ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_disp_ratio);
+ylabel('$mm$', 'Interpreter', 'latex');
+grid on; grid minor;
+
+subplot(3,3,2)
+p_raw_x = plot(T, var_raw(:, 2), 'k'); hold on; 
+plot(T, var_filt_6hzbutter(:, 2), 'b');
+plot(T, var_filt_SSA(:, 2), 'r');
+title('$y$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_x.Color(4) = 1;
+xlim([0 T(end)]);
+% y_lim = ylim();
+% ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_disp_ratio);
+ylabel('$mm$', 'Interpreter', 'latex');
+grid on; grid minor;
+
+subplot(3,3,3)
+p_raw_x = plot(T, var_raw(:, 3), 'k'); hold on; 
+plot(T, var_filt_6hzbutter(:, 3), 'b');
+plot(T, var_filt_SSA(:, 3), 'r');
+title('$z$', 'Interpreter', 'latex', 'fontsize', title_font_size)
+p_raw_x.Color(4) = 1;
+xlim([0 T(end)]);
+% y_lim = ylim();
+% ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_disp_ratio);
+ylabel('$mm$', 'Interpreter', 'latex');
+grid on; grid minor;
+
 % plot v_x, v_y, v_z
+raw_filt_ylim_v_ratio = 1;
 raw_v_alpha = 0.25;
-subplot(3,2,1)
+
+subplot(3,3,4)
 p_raw_x = plot(T, dvar_raw(:, 1), 'k'); hold on; 
-plot(T, dvar_filt_6hzbutter(:, 1), 'r');
+plot(T, dvar_filt_6hzbutter(:, 1), 'b');
+plot(T, dvar_filt_SSA(:, 1), 'r');
 title('$v_x$', 'Interpreter', 'latex', 'fontsize', title_font_size)
 p_raw_x.Color(4) = 0.25;
 xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_v_ratio);
 ylabel('$mm/s$', 'Interpreter', 'latex');
 grid on; grid minor;
 
-subplot(3,2,3)
+subplot(3,3,5)
 p_raw_y = plot(T, dvar_raw(:, 2), 'k'); hold on; 
-plot(T, dvar_filt_6hzbutter(:, 2), 'g');
+plot(T, dvar_filt_6hzbutter(:, 2), 'b');
+plot(T, dvar_filt_SSA(:, 2), 'r');
 title('$v_y$', 'Interpreter', 'latex', 'fontsize', title_font_size)
 p_raw_y.Color(4) = 0.25;
 xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_v_ratio);
 ylabel('$mm/s$', 'Interpreter', 'latex');
 grid on;  grid minor;
 
-subplot(3,2,5)
+subplot(3,3,6)
 p_raw_z = plot(T, dvar_raw(:, 3), 'k'); hold on; 
 plot(T, dvar_filt_6hzbutter(:, 3), 'b');
+plot(T, dvar_filt_SSA(:, 3), 'r');
 title('$v_z$', 'Interpreter', 'latex', 'fontsize', title_font_size)
 p_raw_z.Color(4) = 0.25;
 xlim([0 T(end)]);
+y_lim = ylim();
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_v_ratio);
 xlabel('time (s)', 'Interpreter', 'latex')
 ylabel('$mm/s$', 'Interpreter', 'latex');
 grid on;  grid minor;
 
 % plot a_x, a_y, a_z
 raw_a_alpha = 0.1;
-raw_filt_ylim_ratio = 20;
+raw_filt_ylim_a_ratio = 10;
 
-subplot(3,2,2)
+subplot(3,3,7)
 p_raw_x = plot(T, ddvar_raw(:, 1), 'k'); hold on; 
-plot(T, ddvar_filt_6hzbutter(:, 1), 'r');
+plot(T, ddvar_filt_6hzbutter(:, 1), 'b');
+plot(T, ddvar_filt_SSA(:, 1), 'r');
 title('$a_x$', 'Interpreter', 'latex', 'fontsize', title_font_size);
 p_raw_x.Color(4) = raw_a_alpha;
 xlim([0 T(end)]);
 y_lim = ylim();
-ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio); % symmetric ylim
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_a_ratio); % symmetric ylim
 ylabel('$mm/s^2$', 'Interpreter', 'latex');
 grid on;  grid minor;
 
-subplot(3,2,4)
+subplot(3,3,8)
 p_raw_y = plot(T, ddvar_raw(:, 2), 'k'); hold on; 
-plot(T, ddvar_filt_6hzbutter(:, 2), 'g');
+plot(T, ddvar_filt_6hzbutter(:, 2), 'b');
+plot(T, ddvar_filt_SSA(:, 2), 'r');
 title('$a_y$', 'Interpreter', 'latex', 'fontsize', title_font_size);
 p_raw_y.Color(4) = raw_a_alpha;
 xlim([0 T(end)]);
 y_lim = ylim();
-ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio);
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_a_ratio);
 ylabel('$mm/s^2$', 'Interpreter', 'latex')
 grid on;  grid minor;
 
-subplot(3,2,6)
+subplot(3,3,9)
 p_raw_z = plot(T, ddvar_raw(:, 3), 'k'); hold on; 
 plot(T, ddvar_filt_6hzbutter(:, 3), 'b');
+plot(T, ddvar_filt_SSA(:, 3), 'r');
 title('$a_z$', 'Interpreter', 'latex', 'fontsize', title_font_size);
 p_raw_z.Color(4) = raw_a_alpha;
 xlim([0 T(end)]);
 y_lim = ylim();
-ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_ratio);
+ylim([-max(abs(y_lim)), max(abs(y_lim))]/raw_filt_ylim_a_ratio);
 xlabel('time (s)', 'Interpreter', 'latex');
 ylabel('$mm/s^2$', 'Interpreter', 'latex');
 grid on;  grid minor;
 
+leg = legend('Raw', 'Butterworth (6 Hz)', 'Recursive SSA');
+leg.Interpreter =  'latex';
 
 

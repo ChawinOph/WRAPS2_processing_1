@@ -1225,20 +1225,103 @@ classdef Subject < handle
                  error('%s is not a recognized method', mode)
              end
          end
+         
+         
+         %% SSA function
+         
+         function var_filt_SSA = filtSSA(T, var_raw_1d)
+             g_prev = var_raw_1d;
+             [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
+             rms_ddotg_prev = rms(ddotg_prev);
+             
+             % recursively apply the SSA to the time series until change of the rms is
+             % smaller than 1% of the previous acceleration rms
+             N_max_iter = 15;
 
-        %% Visualization
-        function plotCoPvsTime(this, trial_no, plate_name)
-            var_name = 'CoP';
-            plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
-            var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
-            var = this.raw_data(trial_no).fplate_data(plate_no).fplate_var(:, :, var_no); %#ok<FNDSB>
-            t = (0:1:length(var)-1)/this.freq_fplate;
-            plot(t, var);
-            xlim([0 max(t)]);
-            title([plate_name, ': ', var_name])
-        end
-        
-        function plotFvsTime(this, trial_no, plate_name)
+             for n = 1: N_max_iter
+                 % Step 1 Embedding
+                 %     N = length(g_prev); % signal length
+                 %     L = round(N/30); % signal length (suggested
+                 %     round(N/60))
+                 L = 20; % using fixed length provided a faster processing
+                 %  construct the Hankel matrix (for 1D data), the element in i+j = constant
+                 %  are equal (somtimes it referred to as the trajectory matrix)
+                 X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
+                 
+                 % Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
+                 % S = X*X'; [eigvec, eig_diag] = eig(S); % Sigma =
+                 % diag(sqrt(sort(diag((eig_diag)), 'descend')))
+                 [U, Sigma, V] = svd(X);
+                 
+                 % Step 3 Grouping (Eigentriple grouping)
+                 % grouping with eigenvalues that contribute to 99.99% of the sum
+                 eig_sum_threshold =  99.99/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
+                 for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+                     if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
+                         break;
+                     end
+                 end
+                 
+                 % rank truncation for the approximation of X
+                 Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
+                 
+                 % Step 4: Reconstruction (Diagonal Averaging)
+                 g_curr = sbj1.calcDiagonalAverage_SSA(Y);
+                 [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
+                 rms_ddotg_curr = rms(ddotg_curr);
+                 
+                 % check the manitude chage of the rms
+                 if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
+                     var_filt_SSA = g_curr;
+                     break;
+                 else
+                     rms_ddotg_prev = rms_ddotg_curr;
+                     g_prev = g_curr;
+                 end
+             end
+         end
+         
+         % step 4: diagonal average
+         function g = calcDiagonalAverage_SSA(~, Y)
+             L = size(Y, 1); K = size(Y, 2);          
+             L_star = min([K, L]); K_star = max([K, L]);
+             N = L_star + K_star - 1; % actual length of the time series
+             g = zeros(N, 1); 
+             for k = 1 : N
+                 diag_sum = 0; % reset the summation for the new g(k)
+                 if 1 <= k && k < L_star % perform L_star - 1 time in this case
+                     for m = 1 : k
+                         diag_sum = diag_sum + Y(m, k + 1 - m);
+                     end
+                     diag_avg = diag_sum/k; % find the diagonal avg for the g(k)
+                 elseif L_star <= k && k < K_star + 1 % perform K_star - L_star + 1 time in this case
+                     for m = 1 : L_star % perfom
+                         diag_sum = diag_sum + Y(m, k + 1 - m);
+                     end
+                     diag_avg = diag_sum/L_star; % find the diagonal avg for the g(k)
+                 elseif K_star + 1 <= k && k <= N % perfrom L_star - 1 time in this case
+                     for m = k + 1 - K_star: N + 1 - K_star
+                         diag_sum = diag_sum + Y(m, k + 1 - m);
+                     end
+                     diag_avg = diag_sum/(N - k + 1); % find the diagonal avg for the g(k)
+                 end
+                 g(k) = diag_avg;
+             end
+         end
+         
+         %% Visualization
+         function plotCoPvsTime(this, trial_no, plate_name)
+             var_name = 'CoP';
+             plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
+             var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
+             var = this.raw_data(trial_no).fplate_data(plate_no).fplate_var(:, :, var_no); %#ok<FNDSB>
+             t = (0:1:length(var)-1)/this.freq_fplate;
+             plot(t, var);
+             xlim([0 max(t)]);
+             title([plate_name, ': ', var_name])
+         end
+         
+         function plotFvsTime(this, trial_no, plate_name)
             var_name = 'Force';
             plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
             var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
