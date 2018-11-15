@@ -136,12 +136,12 @@ legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
 
 %% Try other filtering techniques
 % use point from thorax rings
-trial_no = 4;
+trial_no = 1;
 t_marker_pos_filt = sbj1.raw_data(trial_no).marker_data(2).marker_pos;
 t_marker_pos_raw = sbj1.raw_data(trial_no).marker_data(2).marker_pos_raw;
 T = 0: 1/sbj1.freq_marker : (length(t_marker_pos_filt) - 1)/sbj1.freq_marker;
 
-marker_no = 5;
+marker_no = 1;
 
 var_raw = t_marker_pos_raw(:,:,marker_no); % raw
 var_filt_6hzbutter = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
