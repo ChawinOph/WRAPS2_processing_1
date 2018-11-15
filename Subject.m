@@ -69,14 +69,18 @@ classdef Subject < handle
             % Apply filter
             M_trim = rmmissing(M_raw);
             
-            %% Insert an automatic filter here to determine the best cutoff freq
-            
-            
-            %%
+            %% Insert an automatic filter (SSA
+%             tic
+%             M_filt = zeros(size(M_trim));
+%             for n = 1 : size(M_trim, 2)
+%                 M_filt(:,n) = this.filtSSA(M_trim(:, n));
+%             end 
+%             toc
+            %% Butterworth filter option
             
             % Create the low-pass filter (2nd order Butterworth)
             Fs = this.freq_marker; %this is the sampling frequency (frame rate)
-            Fc = 6; % this is the cutoff frequency (6 Hz by default) for the low-pass filter.
+            Fc = 1; % this is the cutoff frequency (4-6 Hz by default) for the low-pass filter.
             Wn = (Fc*2)/Fs; % ratio of the cut-off freq and nyquist freq
             [b,a] = butter(2, Wn);
             
@@ -84,6 +88,7 @@ classdef Subject < handle
             % to https://www.mathworks.com/help/signal/ref/filtfilt.html
             M_filt = filtfilt(b, a, M_trim);
             
+            %%
             % Import headername for sorting
             M_headers = importdata(filename,',',3);
             
@@ -104,13 +109,34 @@ classdef Subject < handle
                 end
                 [var, var_indice] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_filt);
                 [var_raw, ~] = this.extractMarkers(sorted_marker_names{seg_no}, raw_headernames, M_trim);
-                marker_pos = this.sortMarker(var, length(var_indice));
+                
+                dvar = this.calcFirstOrderDerivative(var, 'center_5point');
+                ddvar = this.calcSecondOrderDerivative(var, 'center_5point');
+                
+                dvar_raw = this.calcFirstOrderDerivative(var_raw, 'center_5point');
+                ddvar_raw = this.calcSecondOrderDerivative(var_raw, 'center_5point');
+                
+                marker_pos = this.sortMarker(var, length(var_indice));             
                 marker_pos_raw = this.sortMarker(var_raw, length(var_indice));
+                
+                marker_vel = this.sortMarker(dvar, length(var_indice));             
+                marker_vel_raw = this.sortMarker(dvar_raw, length(var_indice));
+                
+                marker_acc = this.sortMarker(ddvar, length(var_indice));             
+                marker_acc_raw = this.sortMarker(ddvar_raw, length(var_indice));
+
                 this.raw_data(trial_no).marker_data(seg_no).segment_names = sorted_segment_names{seg_no};
                 this.raw_data(trial_no).marker_data(seg_no).marker_names = sorted_marker_names{seg_no};
-                % store both raw and filtered data
+                
+                % store both raw and filtered data also vel and acc
                 this.raw_data(trial_no).marker_data(seg_no).marker_pos =  marker_pos;
                 this.raw_data(trial_no).marker_data(seg_no).marker_pos_raw =  marker_pos_raw;
+                
+                this.raw_data(trial_no).marker_data(seg_no).marker_vel =  marker_vel;
+                this.raw_data(trial_no).marker_data(seg_no).marker_vel_raw =  marker_vel_raw;
+                
+                this.raw_data(trial_no).marker_data(seg_no).marker_acc =  marker_acc;
+                this.raw_data(trial_no).marker_data(seg_no).marker_acc_raw =  marker_acc_raw;
             end
             
             disp(['Imported raw marker data from trial no. ', num2str(trial_no), ' (', this.raw_data(trial_no).marker_trial_name, ')'])
@@ -147,7 +173,7 @@ classdef Subject < handle
             
             % Make the filter (4th order Butterworth)
             Fs = 1000; %this is the sampling frequency (frame rate)
-            Fc = 8; %this is the cutoff frequency for the low-pass filter.
+            Fc = 8; %this is the cutoff frequency for the low-pass filter. (8z is recommended for force plates)
             Wn = (Fc*2)/Fs;
             [b,a] = butter(4, Wn);
             
@@ -1162,11 +1188,12 @@ classdef Subject < handle
          end
         
          %% Kinematics Functions
-         function [time, dvar] = calcFirstOrderDerivative(~, time, var, mode)
+         function dvar = calcFirstOrderDerivative(this, var, mode)
              % calcFirstOrderDerivative: calculate the first derivation of
              % time data: n x 1 array (will be returned at the output
              % argument) var: n x dim array of m variables mode: 'forward',
              % 'backward', or 'center', or 'center_5point'
+             time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
              dt = time(2) - time(1);
              dvar = zeros(size(var));
              if strcmp(mode, 'forward')
@@ -1200,12 +1227,13 @@ classdef Subject < handle
              end              
          end
          
-         function [time, ddvar] = calcSecondOrderDerivative(~, time, var, mode)
+         function ddvar = calcSecondOrderDerivative(this, var, mode)
              % calcSecondOrderDerivative: calculate the second derivation
              % of time data: n x 1 array (will be returned at the output
              % argument) var: n x dim array of m variables mode:
              % 'center_5point'
              % http://web.media.mit.edu/~crtaylor/calculator.html
+             time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
              dt = time(2) - time(1);
              ddvar = zeros(size(var));
              if strcmp(mode, 'center_5point')
@@ -1224,26 +1252,26 @@ classdef Subject < handle
              else
                  error('%s is not a recognized method', mode)
              end
-         end
-         
+         end         
          
          %% SSA function
          
-         function var_filt_SSA = filtSSA(T, var_raw_1d)
+         function var_filt_SSA = filtSSA(this, var_raw_1d)
              g_prev = var_raw_1d;
-             [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
-             rms_ddotg_prev = rms(ddotg_prev);
+%              T = 0: 1/sbj1.freq_marker : (length(var_raw_1d) - 1)/sbj1.freq_marker;
+%              [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
+%              rms_ddotg_prev = rms(ddotg_prev);
              
              % recursively apply the SSA to the time series until change of the rms is
              % smaller than 1% of the previous acceleration rms
-             N_max_iter = 15;
+             N_max_iter = 1;
 
              for n = 1: N_max_iter
                  % Step 1 Embedding
                  %     N = length(g_prev); % signal length
                  %     L = round(N/30); % signal length (suggested
                  %     round(N/60))
-                 L = 20; % using fixed length provided a faster processing
+                 L = 30; % using fixed length provided a faster processing
                  %  construct the Hankel matrix (for 1D data), the element in i+j = constant
                  %  are equal (somtimes it referred to as the trajectory matrix)
                  X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
@@ -1254,31 +1282,31 @@ classdef Subject < handle
                  [U, Sigma, V] = svd(X);
                  
                  % Step 3 Grouping (Eigentriple grouping)
-                 % grouping with eigenvalues that contribute to 99.99% of the sum
-                 eig_sum_threshold =  99.99/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
-                 for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
-                     if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
-                         break;
-                     end
-                 end
-                 
+%                  % grouping with eigenvalues that contribute to 99.99% of the sum
+%                  eig_sum_threshold =  99.99/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
+%                  for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+%                      if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
+%                          break;
+%                      end
+%                  end
+                 r = 1;
                  % rank truncation for the approximation of X
                  Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
                  
                  % Step 4: Reconstruction (Diagonal Averaging)
-                 g_curr = sbj1.calcDiagonalAverage_SSA(Y);
-                 [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
-                 rms_ddotg_curr = rms(ddotg_curr);
+                 g_curr = this.calcDiagonalAverage_SSA(Y);
+%                  [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
+%                  rms_ddotg_curr = rms(ddotg_curr);
                  
                  % check the manitude chage of the rms
-                 if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
-                     var_filt_SSA = g_curr;
-                     break;
-                 else
-                     rms_ddotg_prev = rms_ddotg_curr;
-                     g_prev = g_curr;
-                 end
+%                  if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev                   
+%                      break;
+%                  else
+%                      rms_ddotg_prev = rms_ddotg_curr;
+%                      g_prev = g_curr;
+%                  end
              end
+             var_filt_SSA = g_curr;
          end
          
          % step 4: diagonal average

@@ -33,6 +33,8 @@ markers_reach_max_shoulder_center_trials = {'Max Reach Shoulder Center01 Markers
 
 markers_reach_max_shoulder_contra_trials = {'Max Reach Shoulder Contra01 Markers'}; % trial no. 5
 
+markers_fast_flexion_extension_trials = {'Slow Flexion-Extension Markers'}; % trial no.6
+
 %% Setup VICON force plate trial file names by the order of subjects
 % forceplate_static_baseline = {'Static Max Flexion03 ForcePlate'};
 force_plate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % trial no. 1
@@ -44,6 +46,8 @@ force_plate_static_max_rbend_trials = {'Static Max R-Side Bend01 ForcePlate'}; %
 force_plate_reach_max_shoulder_center_trials = {'Max Reach Shoulder Center01 ForcePlate'}; % trial no. 4
 
 force_plate_reach_max_shoulder_contra_trials = {'Max Reach Shoulder Contra01 ForcePlate'}; % trial no. 5
+
+force_plate_fast_flexion_extension_trials = {'Slow Flexion-Extension ForcePlate'}; % trial no.6
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
@@ -65,31 +69,17 @@ sbj1.importForcePlateData_csv(4, force_plate_reach_max_shoulder_center_trials, f
 sbj1.importMarkerData_csv(5, markers_reach_max_shoulder_contra_trials, sorted_segment_names, sorted_marker_names);
 sbj1.importForcePlateData_csv(5, force_plate_reach_max_shoulder_contra_trials, forceplate_names, fplate_var_names);
 
+sbj1.importMarkerData_csv(6, markers_fast_flexion_extension_trials, sorted_segment_names, sorted_marker_names,  {'P_Hip_L'});
+sbj1.importForcePlateData_csv(6, force_plate_fast_flexion_extension_trials, forceplate_names, fplate_var_names);
+
+
 % Calculate transformation of the WRAPS2.0 from vicon
 toc
 sbj1.vizTrial(1, 1000)
-sbj1.vizTrial(3, 1000)
+sbj1.vizTrial(6, 1500)
 
 %% Calculate CM of WRAPS using CAD and scale
 
-%% Calculate the Velocities
-T = sbj1.sbj_WRAPS2(trial_no).T_base2end;
-time = 0: 1/sbj1.freq_marker: (length(T) - 1)/sbj1.freq_marker;
-var = reshape(T(1:3, 4, :), 3, [])';
-[time, dvar_fwd] = sbj1.calcFirstOrderDerivative(time, var, 'forward');
-[time, dvar_bwd] = sbj1.calcFirstOrderDerivative(time, var, 'backward');
-[time, dvar_cen] = sbj1.calcFirstOrderDerivative(time, var, 'center');
-[time, dvar_cen5] = sbj1.calcFirstOrderDerivative(time, var, 'center_5point');
-
-figure;
-subplot(2,1,1);
-plot(time, var); hold on
-legend('x', 'y', 'z')
-subplot(2,1, 2);
-plot(time, dvar_cen, '--'); hold on
-legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
-% plot(time, dvar_bwd, ':r'); 
-% plot(time, dvar_cen, '--b'); 
 
 %% smooth the marker pos on the brace before finding the velocities of each marker and IARs
 % [1] A. Page, P. Candelas, and F. Belmar, “On the use of local fitting
@@ -136,7 +126,7 @@ legend('v_x,cent5pt', 'v_y,cent5pt', 'v_z,cent5pt')
 
 %% Try other filtering techniques
 % use point from thorax rings
-trial_no = 1;
+trial_no = 6;
 t_marker_pos_filt = sbj1.raw_data(trial_no).marker_data(2).marker_pos;
 t_marker_pos_raw = sbj1.raw_data(trial_no).marker_data(2).marker_pos_raw;
 T = 0: 1/sbj1.freq_marker : (length(t_marker_pos_filt) - 1)/sbj1.freq_marker;
@@ -147,10 +137,10 @@ var_raw = t_marker_pos_raw(:,:,marker_no); % raw
 var_filt_6hzbutter = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpass 6 Hz
 
 % take the first derivative
-[T, dvar_filt_6hzbutter] = sbj1.calcFirstOrderDerivative(T, var_filt_6hzbutter, 'center_5point');
-[T, dvar_raw] = sbj1.calcFirstOrderDerivative(T, var_raw, 'center_5point');
-[T, ddvar_filt_6hzbutter] = sbj1.calcSecondOrderDerivative(T, var_filt_6hzbutter, 'center_5point');
-[T, ddvar_raw] = sbj1.calcSecondOrderDerivative(T, var_raw, 'center_5point');
+dvar_filt_6hzbutter = sbj1.calcFirstOrderDerivative(var_filt_6hzbutter, 'center_5point');
+dvar_raw = sbj1.calcFirstOrderDerivative(var_raw, 'center_5point');
+ddvar_filt_6hzbutter = sbj1.calcSecondOrderDerivative(var_filt_6hzbutter, 'center_5point');
+ddvar_raw = sbj1.calcSecondOrderDerivative(var_raw, 'center_5point');
 
 % [1] F. J. Alonso, J. M. Del Castillo, and P. Pintado, “An Automatic
 % Filtering Procedure for Processing Biomechanical Kinematic Signals,”
@@ -165,24 +155,27 @@ var_filt_6hzbutter = t_marker_pos_filt(:,:,marker_no); % butter 4th order lowpas
 % [1] N. Golyandina, V. Nekrutkin, and A. A. Zhigljavsky, Analysis of time
 % series structure: SSA and related techniques. Boca Raton, Florida:
 % Chapman and Hall/CRC, 2001.
+% 
+% [pxx,w] = periodogram(var_raw(:, 1));
+% figure; plot(w,pxx);
 
 var_filt_SSA = zeros(size(var_raw));
 for dof =1:3 % y component
     var_raw_1d = var_raw(:, dof); % use y
     
     g_prev = var_raw_1d;
-    [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
+    ddotg_prev = sbj1.calcSecondOrderDerivative(g_prev, 'center_5point');
     rms_ddotg_prev = rms(ddotg_prev);
     
     % recursively apply the SSA to the time series until change of the rms is
     % smaller than 1% of the previous acceleration rms
-    N_max_iter = 10;
+    N_max_iter = 1;
     tic
     for n = 1: N_max_iter
         % Step 1 Embedding
-%         N = length(g_prev); % signal length
+        N = length(g_prev); % signal length
 %         L = round(N/60); % signal length (suggested round(N/60))
-        L = 10;
+        L = 30;
         %  construct the Hankel matrix (for 1D data), the element in i+j = constant
         %  are equal (somtimes it referred to as the trajectory matrix)
         X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
@@ -194,46 +187,39 @@ for dof =1:3 % y component
         
         % Step 3 Grouping (Eigentriple grouping) grouping with eigenvalues
         % of S = X*X' that contribute to 99.999% of the sum
-        eig_sum_threshold =  99.999/100*trace((Sigma(1:size(Sigma, 1), 1:size(Sigma, 1))).^2);
-        for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
-            if trace((Sigma(1:r + 1, 1:r + 1)).^2) > eig_sum_threshold
-                break;
-            end
-        end
+%         eig_sum_threshold =  99.999/100*trace((Sigma(1:size(Sigma, 1), 1:size(Sigma, 1))));
+%         for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+%             disp(['r = ', num2str(r)])
+%             disp(100*trace((Sigma(1:r + 1, 1:r + 1)))/trace((Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)))));
+%             if trace((Sigma(1:r + 1, 1:r + 1))) > eig_sum_threshold
+%                 break;
+%             end
+%         end
+        r = 1;
+
         % rank truncation for the approximation of X
         Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
         
         % Step 4: Reconstruction (Diagonal Averaging)
         g_curr = sbj1.calcDiagonalAverage_SSA(Y);
-        [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
+        ddotg_curr = sbj1.calcSecondOrderDerivative(g_curr, 'center_5point');
         rms_ddotg_curr = rms(ddotg_curr);
         
         % check the manitude chage of the rms
-        if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
-            break;
-        else
-            rms_ddotg_prev = rms_ddotg_curr;
-            g_prev = g_curr;
-        end
+%         if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
+%             break;
+%         else
+%             rms_ddotg_prev = rms_ddotg_curr;
+%             g_prev = g_curr;
+%         end
     end
+    n
     toc
     var_filt_SSA(:, dof) = g_curr;
 end
 
-[T, dvar_filt_SSA] = sbj1.calcFirstOrderDerivative(T, var_filt_SSA, 'center_5point');
-[T, ddvar_filt_SSA] = sbj1.calcSecondOrderDerivative(T, var_filt_SSA, 'center_5point');
-
-% figure;
-% plot(T, dvar_raw(:,dof)); hold on
-% plot(T, dvar_filt_6hzbutter(:,dof)); 
-% plot(T, dvar_filt_SSA);
-% legend('raw', 'butter', 'SSA')
-% 
-% figure;
-% plot(T, ddvar_raw(:,dof)); hold on
-% plot(T, ddvar_filt_6hzbutter(:,dof)); 
-% plot(T, ddvar_filt_SSA);
-% legend('raw', 'butter', 'SSA')
+dvar_filt_SSA = sbj1.calcFirstOrderDerivative(var_filt_SSA, 'center_5point');
+ddvar_filt_SSA = sbj1.calcSecondOrderDerivative(var_filt_SSA, 'center_5point');
 
 % plot all results
 close all;
@@ -322,7 +308,7 @@ grid on;  grid minor;
 
 % plot a_x, a_y, a_z
 raw_a_alpha = 0.1;
-raw_filt_ylim_a_ratio = 10;
+raw_filt_ylim_a_ratio = 30;
 
 subplot(3,3,7)
 p_raw_x = plot(T, ddvar_raw(:, 1), 'k'); hold on; 
@@ -365,3 +351,6 @@ leg = legend('Raw', 'Butterworth (6 Hz)', 'Recursive SSA');
 leg.Interpreter =  'latex';
 
 
+%% construct the screw axis
+sbj1.raw_data(trial_no).marker_data(seg_no).marker_pos;
+sbj1.raw_data(trial_no).marker_data(seg_no).marker_vel; 
