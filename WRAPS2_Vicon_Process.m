@@ -352,10 +352,10 @@ leg.Interpreter =  'latex';
 
 
 %% construct the screw axis (will be inserted into the importMarkerData function)
-trial_no= 1;
+trial_no= 2;
 
-[v_g_pelv, omega_pelv, ISA_pelv, centroid_pelv, theta_pelv, T] = sbj1.calcISA(trial_no, 'Pelvis', 'Pelvis Brace');
-[v_g_thor, omega_thor, ISA_thor, centroid_thor, theta_thor, ~] = sbj1.calcISA(trial_no, 'Thorax', 'Thorax Brace');
+[v_g_pelv, omega_pelv, ISA_pelv, centroid_pelv, theta_pelv, T,  T_used_indcs_pelv] = sbj1.calcISA(trial_no, 'Pelvis Brace');
+[v_g_thor, omega_thor, ISA_thor, centroid_thor, theta_thor, ~,  T_used_indcs_thor] = sbj1.calcISA(trial_no, 'Thorax Brace');
 
 figure;
 plot(T, omega_pelv); hold on;
@@ -368,17 +368,22 @@ plot(T, theta_thor, ':'); hold on;
 legend('\theta_{pelv,x}','\theta_{pelv,y}','\theta_{pelv,z}', '\theta_{thor,x}','\theta_{thor,y}','\theta_{thor,z}');
 
 % figure;
-sbj1.vizTrial(trial_no, 1500);
-scatter3(ISA_thor(:,1), ISA_thor(:,2), ISA_thor(:,3)); axis equal;  hold on;
-scatter3(ISA_pelv(:,1), ISA_pelv(:,2), ISA_pelv(:,3)); 
+sbj1.vizTrial(trial_no, 1000);
+% scatter3(ISA_thor(:,1), ISA_thor(:,2), ISA_thor(:,3)); axis equal;  hold on;
+% scatter3(ISA_pelv(:,1), ISA_pelv(:,2), ISA_pelv(:,3)); 
 scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
 scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
 
-quiver3(ISA_thor(1:20:end,1), ISA_thor(1:20:end,2), ISA_thor(1:20:end,3),omega_thor(1:20:end,1), omega_thor(1:20:end,2), omega_thor(1:20:end,3), 10); hold on;
-quiver3(ISA_thor(1:20:end,1), ISA_thor(1:20:end,2), ISA_thor(1:20:end,3),v_g_thor(1:20:end,1), v_g_thor(1:20:end,2), v_g_thor(1:20:end,3), 10);
 
-quiver3(ISA_pelv(1:20:end,1), ISA_pelv(1:20:end,2), ISA_pelv(1:20:end,3),omega_pelv(1:20:end,1), omega_pelv(1:20:end,2), omega_pelv(1:20:end,3), 10);
-quiver3(ISA_pelv(1:20:end,1), ISA_pelv(1:20:end,2), ISA_pelv(1:20:end,3),v_g_pelv(1:20:end,1), v_g_pelv(1:20:end,2), v_g_pelv(1:20:end,3), 10);
+Tt = T_used_indcs_thor(1:round(length(T_used_indcs_thor)/100):end);
+quiver3(ISA_thor(Tt,1), ISA_thor(Tt,2), ISA_thor(Tt,3), ...
+    omega_thor(Tt,1), omega_thor(Tt,2), omega_thor(Tt,3), 10); hold on;
+% quiver3(ISA_thor(1:20:end,1), ISA_thor(1:20:end,2), ISA_thor(1:20:end,3),v_g_thor(1:20:end,1), v_g_thor(1:20:end,2), v_g_thor(1:20:end,3), 1);
+
+Tp = T_used_indcs_pelv(1:round(length(T_used_indcs_thor)/100):end);
+quiver3(ISA_pelv(Tp,1), ISA_pelv(Tp,2), ISA_pelv(Tp,3),...
+    omega_pelv(Tp,1), omega_pelv(Tp,2), omega_pelv(Tp,3), 10);
+% quiver3(ISA_pelv(1:20:end,1), ISA_pelv(1:20:end,2), ISA_pelv(1:20:end,3),v_g_pelv(1:20:end,1), v_g_pelv(1:20:end,2), v_g_pelv(1:20:end,3), 1);
 axis equal;
 
 % calculate the relative screw axis between pelvis and thorax

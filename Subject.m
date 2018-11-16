@@ -282,6 +282,7 @@ classdef Subject < handle
             % store the 3d matrix of marker pos from the trial in the same
             % order as the static cluster pos
             vicon_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos(:, :, used_marker_indcs);
+            vicon_vel = this.raw_data(trial_no).marker_data(segment_no).marker_vel(:, :, used_marker_indcs);
             cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;
             
             % Use Least Square Rigid Body Motion by SVD
@@ -314,6 +315,7 @@ classdef Subject < handle
             
             % store in the WRAPS2 instance
             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos = vicon_pos;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel = vicon_vel;
             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg = T_v2s;
             disp(['Updated ', cluster_name, ' transformations in trial no. ', num2str(trial_no)])
             
@@ -1337,42 +1339,52 @@ classdef Subject < handle
          end
              
          %% instantaneous Screw Axis calculation
-         function J = calcInertiaTensor(~, marker_cluster_pos)
+         function J = calcInertiaTensor(~, r)
              % calcInertiaTensor: calculate the inertia tensor each cluster
              % input
-             % marker_pos: n_time_step x 3 x marker_no
+             % r: n_time_step x 3 x marker_no, static marker pos from
+             % centroid
              J = zeros(3,3);
-             J(1,1) = sum(marker_cluster_pos(:,2).^2 + marker_cluster_pos(:,3).^2);
-             J(2,2) = sum(marker_cluster_pos(:,1).^2 + marker_cluster_pos(:,3).^2);
-             J(3,3) = sum(marker_cluster_pos(:,1).^2 + marker_cluster_pos(:,2).^2);
-             J(1,2) = -sum(marker_cluster_pos(:,1).*marker_cluster_pos(:,2));
-             J(1,3) = -sum(marker_cluster_pos(:,1).*marker_cluster_pos(:,3));
-             J(2,3) = -sum(marker_cluster_pos(:,2).*marker_cluster_pos(:,3));
+             J(1,1) = sum(r(:,2).^2 + r(:,3).^2);
+             J(2,2) = sum(r(:,1).^2 + r(:,3).^2);
+             J(3,3) = sum(r(:,1).^2 + r(:,2).^2);
+             J(1,2) = -sum(r(:,1).*r(:,2));
+             J(1,3) = -sum(r(:,1).*r(:,3));
+             J(2,3) = -sum(r(:,2).*r(:,3));
              J(2,1) = J(1,2);
              J(3,1) = J(1,3);
              J(3,2) = J(2,3);
          end
          
-         function [v_g, omega, ISA_pos, centroid_pos, theta, T] = calcISA(this, trial_no, vicon_segment_name, cluster_name)
+         function [v_g, omega, ISA_pos, centroid_pos, theta, T, T_used_indcs] = calcISA(this, trial_no, cluster_name)
              % calcISA: calculate all variables of the ISA       
-             segment_no = find(strcmp({this.raw_data(trial_no).marker_data.segment_names}, vicon_segment_name));
-             cluster_no = strcmp({this.sbj_marker_cluster_pos.cluster_name}, cluster_name);
+             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name);
              
-             segment_cluster_pos = this.sbj_marker_cluster_pos(cluster_no).marker_static_pos;        
-             segment_marker_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos;
-             segment_marker_vel = this.raw_data(trial_no).marker_data(segment_no).marker_vel;
+             segment_cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
+             segment_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos;
+             segment_marker_vel = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel;
              
-             J = this.calcInertiaTensor(segment_cluster_pos);
+             r = segment_cluster_pos - mean(segment_cluster_pos);
+             J = this.calcInertiaTensor(r);
              v_g = mean(segment_marker_vel, 3);
              centroid_pos = mean(segment_marker_pos, 3);
-             omega = (J\(sum(cross(segment_marker_pos, segment_marker_vel, 2), 3))')';
              
-             GH = (cross(omega, v_g, 2))./vecnorm(omega, 2, 2).^2;
+             % make a 3d r_mat copy from the r for the cross product r_i x v_i
+             r_mat = reshape(r', 3, [], size(r, 1));
+             r_mat = reshape(r_mat, 1, [], size(r_mat,3));
+             r_mat = repmat(r_mat, length(segment_marker_vel), 1, 1);
+             
+             omega = (J\(sum(cross(r_mat, segment_marker_vel, 2), 3))')';
+             
+             omega_norm = vecnorm(omega, 2, 2);
+             GH = (cross(omega, v_g, 2))./omega_norm.^2;
              ISA_pos = centroid_pos + GH;
              
              % calculate the finite angle of rotation
              T = 0: 1/this.freq_marker : (length(segment_marker_pos) - 1)/this.freq_marker;
              theta = cumtrapz(T, omega);
+             
+             T_used_indcs = find(omega_norm >= 0.25*max(omega_norm));
          end
          
          %% Visualization
