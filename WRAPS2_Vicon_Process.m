@@ -354,3 +354,6 @@ leg.Interpreter =  'latex';
 %% construct the screw axis
 sbj1.raw_data(trial_no).marker_data(seg_no).marker_pos;
 sbj1.raw_data(trial_no).marker_data(seg_no).marker_vel; 
+
+% construct the intertia tensor of the marker cluster
+
