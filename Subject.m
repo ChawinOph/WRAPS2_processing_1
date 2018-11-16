@@ -1254,8 +1254,7 @@ classdef Subject < handle
              end
          end         
          
-         %% SSA function
-         
+         %% SSA function       
          function var_filt_SSA = filtSSA(this, var_raw_1d)
              g_prev = var_raw_1d;
 %              T = 0: 1/sbj1.freq_marker : (length(var_raw_1d) - 1)/sbj1.freq_marker;
@@ -1335,6 +1334,14 @@ classdef Subject < handle
                  end
                  g(k) = diag_avg;
              end
+         end
+             
+         %% Screw Axis calculation
+         function J = calcInertiaTensor(this, marker_pos)
+             % calcInertiaTensor: calculate the inertia tensor each cluster
+             % input
+             % marker_pos: n_time_step x 3 x marker_no
+             
          end
          
          %% Visualization

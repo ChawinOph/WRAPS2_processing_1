@@ -352,8 +352,36 @@ leg.Interpreter =  'latex';
 
 
 %% construct the screw axis
-sbj1.raw_data(trial_no).marker_data(seg_no).marker_pos;
-sbj1.raw_data(trial_no).marker_data(seg_no).marker_vel; 
+trial_no= 1;
+pelv_marker_cluster_pos = sbj1.sbj_marker_cluster_pos(1).marker_static_pos;
+pelv_marker_pos = sbj1.raw_data(trial_no).marker_data(1).marker_pos; 
+pelv_marker_vel = sbj1.raw_data(trial_no).marker_data(1).marker_vel; 
+
+thor_marker_cluster_pos = sbj1.sbj_marker_cluster_pos(2).marker_static_pos; 
+thor_marker_pos = sbj1.raw_data(trial_no).marker_data(2).marker_pos;
+thor_marker_vel = sbj1.raw_data(trial_no).marker_data(2).marker_vel;
 
 % construct the intertia tensor of the marker cluster
+J_thor = zeros(3,3);
+J_thor(1,1) = sum(thor_marker_cluster_pos(:,2).^2 + thor_marker_cluster_pos(:,3).^2);
+J_thor(2,2) = sum(thor_marker_cluster_pos(:,1).^2 + thor_marker_cluster_pos(:,3).^2);
+J_thor(3,3) = sum(thor_marker_cluster_pos(:,1).^2 + thor_marker_cluster_pos(:,2).^2);
+J_thor(1,2) = -sum(thor_marker_cluster_pos(:,1).*thor_marker_cluster_pos(:,2));
+J_thor(1,3) = -sum(thor_marker_cluster_pos(:,1).*thor_marker_cluster_pos(:,3));
+J_thor(2,3) = -sum(thor_marker_cluster_pos(:,2).*thor_marker_cluster_pos(:,3));
+J_thor(2,1) = J_thor(1,2);
+J_thor(3,1) = J_thor(1,3);
+J_thor(3,2) = J_thor(2,3);
+
+v_g_thor = mean(thor_marker_vel, 3);
+centroid_thor = mean(thor_marker_pos, 3);
+omega_thor = (J_thor\(sum(cross(thor_marker_pos, thor_marker_vel, 2), 3))')';
+figure;
+plot(omega_thor); legend('\omega_x','\omega_y','\omega_z');
+GH = (cross(omega_thor, v_g_thor, 2))./vecnorm(omega_thor, 2, 2).^2;
+ISA = centroid_thor + GH;
+scatter3(ISA(:,1), ISA(:,2), ISA(:,3)); axis equal; hold on;
+scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));
+quiver3(ISA(1:20:end,1), ISA(1:20:end,2), ISA(1:20:end,3),omega_thor(1:20:end,1), omega_thor(1:20:end,2), omega_thor(1:20:end,3), 10)
+ 
 
