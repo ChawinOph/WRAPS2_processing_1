@@ -1336,12 +1336,43 @@ classdef Subject < handle
              end
          end
              
-         %% Screw Axis calculation
-         function J = calcInertiaTensor(this, marker_pos)
+         %% instantaneous Screw Axis calculation
+         function J = calcInertiaTensor(~, marker_cluster_pos)
              % calcInertiaTensor: calculate the inertia tensor each cluster
              % input
              % marker_pos: n_time_step x 3 x marker_no
+             J = zeros(3,3);
+             J(1,1) = sum(marker_cluster_pos(:,2).^2 + marker_cluster_pos(:,3).^2);
+             J(2,2) = sum(marker_cluster_pos(:,1).^2 + marker_cluster_pos(:,3).^2);
+             J(3,3) = sum(marker_cluster_pos(:,1).^2 + marker_cluster_pos(:,2).^2);
+             J(1,2) = -sum(marker_cluster_pos(:,1).*marker_cluster_pos(:,2));
+             J(1,3) = -sum(marker_cluster_pos(:,1).*marker_cluster_pos(:,3));
+             J(2,3) = -sum(marker_cluster_pos(:,2).*marker_cluster_pos(:,3));
+             J(2,1) = J(1,2);
+             J(3,1) = J(1,3);
+             J(3,2) = J(2,3);
+         end
+         
+         function [v_g, omega, ISA_pos, centroid_pos, theta, T] = calcISA(this, trial_no, vicon_segment_name, cluster_name)
+             % calcISA: calculate all variables of the ISA       
+             segment_no = find(strcmp({this.raw_data(trial_no).marker_data.segment_names}, vicon_segment_name));
+             cluster_no = strcmp({this.sbj_marker_cluster_pos.cluster_name}, cluster_name);
              
+             segment_cluster_pos = this.sbj_marker_cluster_pos(cluster_no).marker_static_pos;        
+             segment_marker_pos = this.raw_data(trial_no).marker_data(segment_no).marker_pos;
+             segment_marker_vel = this.raw_data(trial_no).marker_data(segment_no).marker_vel;
+             
+             J = this.calcInertiaTensor(segment_cluster_pos);
+             v_g = mean(segment_marker_vel, 3);
+             centroid_pos = mean(segment_marker_pos, 3);
+             omega = (J\(sum(cross(segment_marker_pos, segment_marker_vel, 2), 3))')';
+             
+             GH = (cross(omega, v_g, 2))./vecnorm(omega, 2, 2).^2;
+             ISA_pos = centroid_pos + GH;
+             
+             % calculate the finite angle of rotation
+             T = 0: 1/this.freq_marker : (length(segment_marker_pos) - 1)/this.freq_marker;
+             theta = cumtrapz(T, omega);
          end
          
          %% Visualization
