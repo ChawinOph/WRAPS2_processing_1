@@ -1339,44 +1339,45 @@ classdef Subject < handle
          end
              
          %% instantaneous Screw Axis calculation
-         function J = calcInertiaTensor(~, r)
+         function J = calcInertiaTensor(~, r_mat)
              % calcInertiaTensor: calculate the inertia tensor each cluster
              % input
              % r: n_time_step x 3 x marker_no, static marker pos from
              % centroid
-             J = zeros(3,3);
-             J(1,1) = sum(r(:,2).^2 + r(:,3).^2);
-             J(2,2) = sum(r(:,1).^2 + r(:,3).^2);
-             J(3,3) = sum(r(:,1).^2 + r(:,2).^2);
-             J(1,2) = -sum(r(:,1).*r(:,2));
-             J(1,3) = -sum(r(:,1).*r(:,3));
-             J(2,3) = -sum(r(:,2).*r(:,3));
-             J(2,1) = J(1,2);
-             J(3,1) = J(1,3);
-             J(3,2) = J(2,3);
+             J = zeros(3, 3, size(r_mat, 1));
+             J(1, 1, :) = sum(r_mat(:, 2, :).^2 + r_mat(:, 3, :).^2, 3);            
+             J(2, 2, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 3, :).^2, 3);
+             J(3, 3, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 2, :).^2, 3);
+             J(1, 2, :) = -sum(r_mat(:, 1, :).*r_mat(:, 2, :), 3);
+             J(1, 3, :) = -sum(r_mat(:, 1, :).*r_mat(:, 3, :), 3);
+             J(2, 3, :) = -sum(r_mat(:, 2, :).*r_mat(:, 3, :), 3);
+             J(2, 1, :) = J(1, 2, :);
+             J(3, 1, :) = J(1, 3, :);
+             J(3, 2, :) = J(2, 3, :);
          end
          
-         function [v_g, omega, ISA_pos, centroid_pos, theta, T, T_used_indcs] = calcISA(this, trial_no, cluster_name)
+         function [v_g, omega, ISA_pos, centroid_pos, theta, T, T_used_indcs, v_s] = calcISA(this, trial_no, cluster_name)
              % calcISA: calculate all variables of the ISA       
              cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name);
              
-             segment_cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
+%              segment_cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
              segment_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos;
              segment_marker_vel = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel;
-             
-             r = segment_cluster_pos - mean(segment_cluster_pos);
-             J = this.calcInertiaTensor(r);
+                     
              v_g = mean(segment_marker_vel, 3);
              centroid_pos = mean(segment_marker_pos, 3);
+             r_mat = segment_marker_pos - centroid_pos;
+             J = this.calcInertiaTensor(r_mat);
              
-             % make a 3d r_mat copy from the r for the cross product r_i x v_i
-             r_mat = reshape(r', 3, [], size(r, 1));
-             r_mat = reshape(r_mat, 1, [], size(r_mat,3));
-             r_mat = repmat(r_mat, length(segment_marker_vel), 1, 1);
-             
-             omega = (J\(sum(cross(r_mat, segment_marker_vel, 2), 3))')';
+             omega = zeros(size(r_mat, 1), 3);
+             r_cross_v = sum(cross(r_mat, segment_marker_vel, 2), 3);
+             for i = 1: size(omega, 1)
+                 omega(i,:) = J(:,:,i)\r_cross_v(i, :)';
+             end
              
              omega_norm = vecnorm(omega, 2, 2);
+             
+             % Chasles' theorem
              GH = (cross(omega, v_g, 2))./omega_norm.^2;
              ISA_pos = centroid_pos + GH;
              
@@ -1384,7 +1385,12 @@ classdef Subject < handle
              T = 0: 1/this.freq_marker : (length(segment_marker_pos) - 1)/this.freq_marker;
              theta = cumtrapz(T, omega);
              
-             T_used_indcs = find(omega_norm >= 0.25*max(omega_norm));
+             % find magnitude of v_s (v // to the screw axis)
+             if nargout > 7
+                 v_s = v_g + cross(omega, GH, 2);
+             end
+             
+             T_used_indcs = find(omega_norm >= 0.5*max(omega_norm));
          end
          
          %% Visualization
