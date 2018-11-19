@@ -149,7 +149,8 @@ classdef Subject < handle
             this.calcTransformationBetweenClusters(trial_no, 'Pelvis Brace', 'Thorax Brace')
             this.calcLandmarkPos(trial_no);
             this.calcSegmentTrans(trial_no);
-            this.calcSegmentInertia(trial_no)
+            this.calcSegmentInertia(trial_no);
+            this.updateISAs(trial_no);
             disp(' ') % intentionally leave an empty line
             
         end
@@ -1134,6 +1135,14 @@ classdef Subject < handle
             pos_wrt_new_frame = reshape(T_pos_wrt_new_frame(1:3, 4, :), 3, [])';
         end
         
+        function vec_wrt_new_frame = calcVecInNewFrame(this, T_v2new_frame, vec_wrt_vicon)
+            T_vec_wrt_vicon = this.createTransformsTranslation(vec_wrt_vicon);
+            % reset all the translation components to zeros
+            T_v2new_frame(1:3, 4, :) = 0;
+            T_vec_wrt_new_frame = this.multiplyTransforms(this.invTransformsMat(T_v2new_frame), T_vec_wrt_vicon);
+            vec_wrt_new_frame = reshape(T_vec_wrt_new_frame(1:3, 4, :), 3, [])';
+        end
+        
         function z_pos_wrt_new_frame = calcZPosInNewFrame(this, T_v2new_frame, pos_wrt_vicon)
             T_pos_wrt_vicon = this.createTransformsTranslation(pos_wrt_vicon);
             T_pos_wrt_new_frame = this.multiplyTransforms(this.invTransformsMat(T_v2new_frame), T_pos_wrt_vicon);
@@ -1190,6 +1199,12 @@ classdef Subject < handle
          end
         
          %% Kinematics Functions
+         function T = calcViconTime(this, N)
+             % calcViconTime: Return array of time steps based on the
+             % length input
+             T = 0: 1/this.freq_marker : (N - 1)/this.freq_marker;
+         end
+       
          function dvar = calcFirstOrderDerivative(this, var, mode)
              % calcFirstOrderDerivative: calculate the first derivation of
              % time data: n x 1 array (will be returned at the output
@@ -1356,14 +1371,13 @@ classdef Subject < handle
              J(3, 2, :) = J(2, 3, :);
          end
          
-         function [v_g, omega, ISA_pos, centroid_pos, theta, T, T_used_indcs, v_s] = calcISA(this, trial_no, cluster_name)
-             % calcISA: calculate all variables of the ISA       
+         function [v_g, omega, centroid_pos] = calcISA_cluster(this, trial_no, cluster_name)
+             % calcISA: calculate all variables of the ISA
              cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name);
              
-%              segment_cluster_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_static_pos;        
              segment_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos;
              segment_marker_vel = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel;
-                     
+             
              v_g = mean(segment_marker_vel, 3);
              centroid_pos = mean(segment_marker_pos, 3);
              r_mat = segment_marker_pos - centroid_pos;
@@ -1377,23 +1391,197 @@ classdef Subject < handle
              
              omega_norm = vecnorm(omega, 2, 2);
              
-             % Chasles' theorem
+             % Chasles' theorem for finding the ISA location in space
+             % relative to the marker centroid
              GH = (cross(omega, v_g, 2))./omega_norm.^2;
              ISA_pos = centroid_pos + GH;
              
              % calculate the finite angle of rotation
-             T = 0: 1/this.freq_marker : (length(segment_marker_pos) - 1)/this.freq_marker;
+             T = this.calcViconTime(length(segment_marker_pos));
              theta = cumtrapz(T, omega);
              
              % find magnitude of v_s (v // to the screw axis)
-             if nargout > 7
-                 v_s = v_g + cross(omega, GH, 2);
-             end
+             v_s = v_g + cross(omega, GH, 2);
              
-             T_used_indcs = find(omega_norm >= 0.5*max(omega_norm));
+             T_indcs = find(omega_norm >= 0.25*max(omega_norm));
+             
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_g = v_g;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega = omega;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega_norm = omega_norm;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).ISA_pos = ISA_pos;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).centroid_pos = centroid_pos;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).theta = theta;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).T_indcs = T_indcs;
+             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_s = v_s;
+         end
+         
+         function updateISAs(this, trial_no)
+             % calculate ISA from both segments and store in "trial
+             % derivative data"
+             [v_g_pelv, omega_pelv, centroid_pelv] = this.calcISA_cluster(trial_no, 'Pelvis Brace');
+             [v_g_thor, omega_thor, centroid_thor] = this.calcISA_cluster(trial_no, 'Thorax Brace');
+              
+             % calculate the relative screw axis between pelvis and thorax           
+             % get the psis positions
+             indx_r_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'R_PSIS');
+             indx_l_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'L_PSIS');
+             pos_r_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_r_psis);
+             pos_l_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_l_psis);
+             pos_m_psis = (pos_r_psis + pos_l_psis)/2;
+             
+             pelv_g2m_psis = pos_m_psis - centroid_pelv;
+             thor_g2m_psis = pos_m_psis - centroid_thor;
+             
+             v_m_psis_on_pelv = v_g_pelv + cross(omega_pelv, pelv_g2m_psis, 2);
+             v_m_psis_on_thor = v_g_thor + cross(omega_thor, thor_g2m_psis, 2);
+             v_m_psis_r = v_m_psis_on_thor - v_m_psis_on_pelv;
+             
+             omega_r = omega_thor - omega_pelv;
+             omega_r_norm = vecnorm(omega_r, 2, 2);
+             
+             PH = (cross(omega_r, v_m_psis_r, 2))./omega_r_norm.^2;
+             ISA_r_pos =  pos_m_psis + PH;
+             
+             % calculate the finite angle of rotation
+             Tr = 0: 1/this.freq_marker : (length(pos_m_psis) - 1)/this.freq_marker;
+             theta_r = cumtrapz(Tr, omega_r);
+             
+             T_indcs_r = find(omega_r_norm >= 0.25*max(omega_r_norm));  
+             
+             v_s_r = v_m_psis_r  + cross(omega_r, PH, 2);
+             
+             this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r = v_m_psis_r;
+             this.sbj_WRAPS2(trial_no).relISA.omega_r = omega_r;
+             this.sbj_WRAPS2(trial_no).relISA.omega_r_norm = omega_r_norm;
+             this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos = ISA_r_pos;
+             this.sbj_WRAPS2(trial_no).relISA.pos_m_psis = pos_m_psis;
+             this.sbj_WRAPS2(trial_no).relISA.theta_r = theta_r;
+             this.sbj_WRAPS2(trial_no).relISA.T_indcs_r = T_indcs_r;
+             this.sbj_WRAPS2(trial_no).relISA.v_s = v_s_r;
+             
+             % find ISA_r with respect to the pelvis brace moving frame
+             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+             T_v2pelv_brace = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg;
+             ISA_r_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, ISA_r_pos);
+             omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, omega_r);
+             
+             this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace =  ISA_r_wrt_pelvis_brace;
+             this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
+             
+             disp(['Updated ISAs in trial no. ', num2str(trial_no)])
+         end
+         
+         function vizISAs(this, trial_no)           
+             n_down_sample_ratio = 100;
+             
+             pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+             thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+             
+             centroid_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).centroid_pos;
+             centroid_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).centroid_pos;
+             
+             T_indcs_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).T_indcs;
+             T_indcs_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).T_indcs;
+             
+             omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
+             omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
+             
+             v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
+             v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
+             
+             ISA_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).ISA_pos;
+             ISA_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).ISA_pos;        
+             
+             % get relative data
+             ISA_r = this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos;
+             T_indcs_r = this.sbj_WRAPS2(trial_no).relISA.T_indcs_r;
+             v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
+             omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
+             ISA_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace;
+             pos_m_psis = this.sbj_WRAPS2(trial_no).relISA.pos_m_psis;
+             omega_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace;
+             
+             % scatter plot of centroid
+             scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
+             scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
+             
+             % absolute ISA of thorax brace
+             Tt = T_indcs_thor(1:round(length(T_indcs_thor)/n_down_sample_ratio):end);
+             quiver3(ISA_thor(Tt,1), ISA_thor(Tt,2), ISA_thor(Tt,3), ...
+                 omega_thor(Tt,1), omega_thor(Tt,2), omega_thor(Tt,3), 10);        
+             quiver3(centroid_thor(Tt,1), centroid_thor(Tt,2), centroid_thor(Tt,3), v_g_thor(Tt,1), v_g_thor(Tt,2), v_g_thor(Tt,3), 10);
+             
+             % absolute ISA of pelvis brace
+             Tp = T_indcs_pelv(1:round(length(T_indcs_pelv)/n_down_sample_ratio):end);
+             quiver3(ISA_pelv(Tp,1), ISA_pelv(Tp,2), ISA_pelv(Tp,3),...
+                 omega_pelv(Tp,1), omega_pelv(Tp,2), omega_pelv(Tp,3), 10);
+             quiver3(centroid_pelv(Tp,1), centroid_pelv(Tp,2), centroid_pelv(Tp,3),v_g_pelv(Tp,1), v_g_pelv(Tp,2), v_g_pelv(Tp,3), 10);
+             
+             % absolute relative ISA of 
+             scatter3(pos_m_psis(:,1), pos_m_psis(:,2), pos_m_psis(:,3));
+             Tr = T_indcs_r(1:round(length(T_indcs_r)/n_down_sample_ratio):end);
+             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
+                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10);
+             quiver3(pos_m_psis(Tr,1), pos_m_psis(Tr,2), pos_m_psis(Tr,3), v_m_psis_r(Tr,1), v_m_psis_r(Tr,2), v_m_psis_r(Tr,3), 10);
+             axis equal;
+             
+             % plot the ISA and omega wrt to the pelvis frame
+             figure;
+             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
+                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10); hold on;
+             quiver3(ISA_r_wrt_pelvis_brace(Tr,1), ISA_r_wrt_pelvis_brace(Tr,2), ISA_r_wrt_pelvis_brace(Tr,3),...
+                 omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10);
+             axis equal;
+             
          end
          
          %% Visualization
+         function plotISAdata(this, trial_no)
+             pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+             thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+             
+             v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
+             omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
+             theta_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).theta;
+             
+             v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
+             omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
+             theta_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).theta;
+             
+             v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
+             omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
+             theta_r = this.sbj_WRAPS2(trial_no).relISA.theta_r;
+             
+             T = this.calcViconTime(length(omega_pelv));
+             
+             figure;
+             plot(T, omega_pelv); hold on;
+             plot(T, omega_thor, ':');
+             plot(T, omega_r, '--');
+             legend('\omega_{pelv,x}','\omega_{pelv,y}','\omega_{pelv,z}', ...
+                 '\omega_{thor,x}','\omega_{thor,y}','\omega_{thor,z}', ...
+                 '\omega_{r,x}','\omega_{r,y}','\omega_{r,z}');
+             title(this.raw_data(trial_no).marker_trial_name)
+             
+             figure;
+             plot(T, theta_pelv); hold on;
+             plot(T, theta_thor, ':');
+             plot(T, theta_r, '--');
+             legend('\theta_{pelv,x}','\theta_{pelv,y}','\theta_{pelv,z}',...
+                 '\theta_{thor,x}','\theta_{thor,y}','\theta_{thor,z}',...
+                 '\theta_{r,x}','\theta_{r,y}','\theta_{r,z}');
+             title(this.raw_data(trial_no).marker_trial_name)
+             
+             figure;
+             plot(T, v_g_pelv); hold on;
+             plot(T, v_g_thor, ':');
+             plot(T, v_m_psis_r, '--');
+             legend('v_{pelv,x}','v_{pelv,y}','v_{pelv,z}', ...
+                 'v_{thor,x}','v_{thor,y}','v_{thor,z}', ...
+                 'v_{r,x}','v_{r,y}','v_{r,z}');
+             title(this.raw_data(trial_no).marker_trial_name)
+         end
+         
          function plotCoPvsTime(this, trial_no, plate_name)
              var_name = 'CoP';
              plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
@@ -1595,8 +1783,7 @@ classdef Subject < handle
             ankle_l_line = [T_foot_l_prox(1:3, 4), T_foot_l_dist(1:3, 4), T_heel_l(1:3, 4), T_foot_l_prox(1:3, 4)];
             
             plot3(ankle_r_line(1, :), ankle_r_line(2, :), ankle_r_line(3, :), 'k:');
-            plot3(ankle_l_line(1, :), ankle_l_line(2, :), ankle_l_line(3, :), 'k:');
-            
+            plot3(ankle_l_line(1, :), ankle_l_line(2, :), ankle_l_line(3, :), 'k:');        
         end
         
         function plotSegmentCM(this, trial_no, viz_time_step)
@@ -1775,7 +1962,7 @@ classdef Subject < handle
             % segment transforms
             this.plotSegmentTrans(trial_no, viz_time_step)
             this.plotSegmentCM(trial_no, viz_time_step)
-            
+            this.vizISAs(trial_no);
         end
         
         % visual elements
