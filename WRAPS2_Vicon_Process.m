@@ -120,11 +120,15 @@ moment_foot = -cross(CoP_foot, GRF_foot, 2);
 
 moment_seat = moment_seat(1:down_sample_ratio:end, :);
 moment_foot = moment_foot(1:down_sample_ratio:end, :);
+GRF_seat = -GRF_seat(1:down_sample_ratio:end, :);
+GRF_foot = -GRF_foot(1:down_sample_ratio:end, :);
 
 T = sbj1.calcViconTime(length(moment_mg));
 figure; 
 plot(T, moment_mg, '-', T, moment_seat, ':', T, moment_foot);
 
 figure; 
-plot(T, moment_mg + moment_seat + moment_foot);
+plot(T, (moment_mg + moment_seat + moment_foot)/1000);
+figure;
+plot(T, mg_mat + GRF_seat + GRF_foot);
 
