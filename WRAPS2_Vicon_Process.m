@@ -126,9 +126,12 @@ GRF_foot = -GRF_foot(1:down_sample_ratio:end, :);
 T = sbj1.calcViconTime(length(moment_mg));
 figure; 
 plot(T, moment_mg, '-', T, moment_seat, ':', T, moment_foot);
+title('moment separate')
 
 figure; 
 plot(T, (moment_mg + moment_seat + moment_foot)/1000);
+title('moment')
 figure;
 plot(T, mg_mat + GRF_seat + GRF_foot);
+title('force')
 
