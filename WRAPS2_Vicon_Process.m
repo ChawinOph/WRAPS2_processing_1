@@ -79,5 +79,52 @@ toc
 sbj1.vizTrial(trial_no, 1000);
 sbj1.plotISAdata(trial_no);
 
+sbj1.vizTrial(2, 1000);
+sbj1.plotISAdata(2);
+
 sbj1.vizTrial(3, 1000);
 sbj1.plotISAdata(3);
+
+sbj1.vizTrial(4, 1000);
+sbj1.plotISAdata(4);
+
+sbj1.vizTrial(5, 1000);
+sbj1.plotISAdata(5);
+
+%% calc the force and moment
+trial_no = 2;
+total_cm_pos = sbj1.sbj_anthro(trial_no).total_cm_pos; % mm
+mg = sbj1.g*sbj1.sbj_anthro_measurement.weight_kg; % N
+mg_mat = repmat(mg', length(total_cm_pos), 1);
+moment_mg = cross(total_cm_pos, mg_mat, 2);
+
+% get the force plate data and down-sample it 
+down_sample_ratio = sbj1.freq_fplate/sbj1.freq_marker;
+
+seat_plate_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data.fplate_name],'Seat Plate'));
+seat_cop_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data(seat_plate_indx).fplate_var_names],'CoP'));
+seat_f_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data(seat_plate_indx).fplate_var_names],'Force'));
+
+foot_plate_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data.fplate_name],'Foot Plate'));
+foot_cop_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data(foot_plate_indx).fplate_var_names],'CoP'));
+foot_f_indx = find(strcmp([sbj1.raw_data(trial_no).fplate_data(foot_plate_indx).fplate_var_names],'Force'));
+
+CoP_seat = sbj1.raw_data(trial_no).fplate_data(seat_plate_indx).fplate_var(:,:,seat_cop_indx);
+GRF_seat = sbj1.raw_data(trial_no).fplate_data(seat_plate_indx).fplate_var(:,:,seat_f_indx);
+
+CoP_foot = sbj1.raw_data(trial_no).fplate_data(foot_plate_indx).fplate_var(:,:,foot_cop_indx);
+GRF_foot = sbj1.raw_data(trial_no).fplate_data(foot_plate_indx).fplate_var(:,:,foot_f_indx);
+
+moment_seat = -cross(CoP_seat, GRF_seat, 2);
+moment_foot = -cross(CoP_foot, GRF_foot, 2);
+
+moment_seat = moment_seat(1:down_sample_ratio:end, :);
+moment_foot = moment_foot(1:down_sample_ratio:end, :);
+
+T = sbj1.calcViconTime(length(moment_mg));
+figure; 
+plot(T, moment_mg, '-', T, moment_seat, ':', T, moment_foot);
+
+figure; 
+plot(T, moment_mg + moment_seat + moment_foot);
+

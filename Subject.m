@@ -70,12 +70,12 @@ classdef Subject < handle
             M_trim = rmmissing(M_raw);
             
             %% Insert an automatic filter (SSA
-%             tic
-%             M_filt = zeros(size(M_trim));
-%             for n = 1 : size(M_trim, 2)
-%                 M_filt(:,n) = this.filtSSA(M_trim(:, n));
-%             end 
-%             toc
+            %             tic
+            %             M_filt = zeros(size(M_trim));
+            %             for n = 1 : size(M_trim, 2)
+            %                 M_filt(:,n) = this.filtSSA(M_trim(:, n));
+            %             end
+            %             toc
             %% Butterworth filter option
             
             % Create the low-pass filter (2nd order Butterworth)
@@ -116,15 +116,15 @@ classdef Subject < handle
                 dvar_raw = this.calcFirstOrderDerivative(var_raw, 'center_5point');
                 ddvar_raw = this.calcSecondOrderDerivative(var_raw, 'center_5point');
                 
-                marker_pos = this.sortMarker(var, length(var_indice));             
+                marker_pos = this.sortMarker(var, length(var_indice));
                 marker_pos_raw = this.sortMarker(var_raw, length(var_indice));
                 
-                marker_vel = this.sortMarker(dvar, length(var_indice));             
+                marker_vel = this.sortMarker(dvar, length(var_indice));
                 marker_vel_raw = this.sortMarker(dvar_raw, length(var_indice));
                 
-                marker_acc = this.sortMarker(ddvar, length(var_indice));             
+                marker_acc = this.sortMarker(ddvar, length(var_indice));
                 marker_acc_raw = this.sortMarker(ddvar_raw, length(var_indice));
-
+                
                 this.raw_data(trial_no).marker_data(seg_no).segment_names = sorted_segment_names{seg_no};
                 this.raw_data(trial_no).marker_data(seg_no).marker_names = sorted_marker_names{seg_no};
                 
@@ -211,6 +211,13 @@ classdef Subject < handle
                 end
             end
         end
+        
+%         function calcForceMoment(this, trial_no)
+%             total_cm_pos = this.sbj_anthro(trial_no).total_cm_pos;
+%             mg = this.g*this.sbj_anthro_measurement.weight_kg;
+%             mg_mat = 
+%             moment_mg = cross(total_cm_pos, mg)
+%         end
         
         function [var, var_indice] = extractMarkers(this, marker_names, raw_headernames, M)
             % select only the positions of markers in the list
@@ -327,12 +334,12 @@ classdef Subject < handle
             cluster_base_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name_base);
             cluster_end_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name_end);
             T_v2base = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_base_no).transforms_vicon2seg;
-            T_v2end = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_end_no).transforms_vicon2seg;  
+            T_v2end = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_end_no).transforms_vicon2seg;
             this.sbj_WRAPS2(trial_no).T_base2end =  this.multiplyTransforms(this.invTransformsMat(T_v2base), T_v2end);
             
-             disp(['Updated ', cluster_name_base, ' to ', cluster_name_end, ' transformations in trial no. ', num2str(trial_no)])
+            disp(['Updated ', cluster_name_base, ' to ', cluster_name_end, ' transformations in trial no. ', num2str(trial_no)])
         end
-%         
+        %
         %% Calculate landmark positions
         
         function calcLandmarkPos(this, trial_no)
@@ -1025,17 +1032,17 @@ classdef Subject < handle
             T_v2foot_l_proxim = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_proxim;
             T_v2foot_l_distal = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal;
             T_v2heel_l = this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).T_v2seg_distal_aux_l;
-                     
+            
             % CoM of thighs and shanks
             [T_v2cm_thigh_R, pos_cm_thigh_R] = this.calcLimbCMTranforms(T_v2thigh_r_proxim, T_v2thigh_r_distal, cm_pos_ratio_thigh_prox2dist);
             [T_v2cm_thigh_L, pos_cm_thigh_L] = this.calcLimbCMTranforms(T_v2thigh_l_proxim, T_v2thigh_l_distal, cm_pos_ratio_thigh_prox2dist);
             [T_v2cm_shank_R, pos_cm_shank_R] = this.calcLimbCMTranforms(T_v2shank_r_proxim, T_v2shank_r_distal, cm_pos_ratio_shank_prox2dist);
-            [T_v2cm_shank_L, pos_cm_shank_L] = this.calcLimbCMTranforms(T_v2shank_l_proxim, T_v2shank_l_distal, cm_pos_ratio_shank_prox2dist);            
+            [T_v2cm_shank_L, pos_cm_shank_L] = this.calcLimbCMTranforms(T_v2shank_l_proxim, T_v2shank_l_distal, cm_pos_ratio_shank_prox2dist);
             
             [T_v2cm_foot_R, pos_cm_foot_R] = this.calcFootCMTranforms(T_v2foot_r_proxim, T_v2foot_r_distal, T_v2heel_r, cm_pos_ratio_foot_heel2toe);
             [T_v2cm_foot_L, pos_cm_foot_L] = this.calcFootCMTranforms(T_v2foot_l_proxim, T_v2foot_l_distal, T_v2heel_l, cm_pos_ratio_foot_heel2toe);
             
-
+            
             this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).T_v2cm_seg = T_v2cm_thigh_R;
             this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).pos_cm_seg =  pos_cm_thigh_R;
             this.sbj_anthro(trial_no).body_segment_transform(thigh_r_segment_indx).seg_mass =  sbj_mass*mass_ratio_thigh;
@@ -1060,11 +1067,11 @@ classdef Subject < handle
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).pos_cm_seg = pos_cm_foot_L;
             this.sbj_anthro(trial_no).body_segment_transform(foot_l_segment_indx).seg_mass =  sbj_mass*mass_ratio_foot;
             
-            %% CoM of total body 
+            %% CoM of total body
             seg_masses = [this.sbj_anthro(trial_no).body_segment_transform.seg_mass];
             weighted_sum = zeros(length(T_v2cm_foot_L), 3);
             for i = 1:length(seg_masses)
-                weighted_sum = weighted_sum + seg_masses(i)*this.sbj_anthro(trial_no).body_segment_transform(i).pos_cm_seg;               
+                weighted_sum = weighted_sum + seg_masses(i)*this.sbj_anthro(trial_no).body_segment_transform(i).pos_cm_seg;
             end
             this.sbj_anthro(trial_no).total_cm_pos = weighted_sum./sum(seg_masses);
             
@@ -1178,15 +1185,15 @@ classdef Subject < handle
             pos_cm_seg = reshape(T_v2cm_seg(1:3, 4, :), 3, [])';
         end
         
-         function [T_v2cm_foot, pos_cm_foot] = calcFootCMTranforms(this, T_v2foot_proxim, T_v2foot_distal, T_v2heel, cm_ratio_heel2toe)
+        function [T_v2cm_foot, pos_cm_foot] = calcFootCMTranforms(this, T_v2foot_proxim, T_v2foot_distal, T_v2heel, cm_ratio_heel2toe)
             % get origins of both ends
             heel_pos = reshape(T_v2heel(1:3, 4, :), 3, [])';
             toe_pos = reshape(T_v2foot_distal(1:3, 4, :), 3, [])';
-            ankle_pos = reshape(T_v2foot_proxim(1:3, 4, :), 3, [])';    
+            ankle_pos = reshape(T_v2foot_proxim(1:3, 4, :), 3, [])';
             
             heel_pos_wrt_heel_frame = this.calcPosInNewFrame(T_v2heel, heel_pos); % should be zeros
             toe_pos_wrt_heel_frame = this.calcPosInNewFrame(T_v2heel, toe_pos); % should be along y axis only
-            ankle_pos_wrt_heel_frame = this.calcPosInNewFrame(T_v2heel, ankle_pos ); % should be along y and z axes 
+            ankle_pos_wrt_heel_frame = this.calcPosInNewFrame(T_v2heel, ankle_pos ); % should be along y and z axes
             ankle_pos_wrt_heel_frame(:, [1,2]) = 0; % use only the z component
             
             heel2cm_foot = cm_ratio_heel2toe*(toe_pos_wrt_heel_frame - heel_pos_wrt_heel_frame) + ...
@@ -1196,404 +1203,404 @@ classdef Subject < handle
             T_v2cm_foot = this.multiplyTransforms(T_v2heel , T_heel2cm_foot);
             % get only the position vectors
             pos_cm_foot = reshape(T_v2cm_foot(1:3, 4, :), 3, [])';
-         end
+        end
         
-         %% Kinematics Functions
-         function T = calcViconTime(this, N)
-             % calcViconTime: Return array of time steps based on the
-             % length input
-             T = 0: 1/this.freq_marker : (N - 1)/this.freq_marker;
-         end
-       
-         function dvar = calcFirstOrderDerivative(this, var, mode)
-             % calcFirstOrderDerivative: calculate the first derivation of
-             % time data: n x 1 array (will be returned at the output
-             % argument) var: n x dim array of m variables mode: 'forward',
-             % 'backward', or 'center', or 'center_5point'
-             time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
-             dt = time(2) - time(1);
-             dvar = zeros(size(var));
-             if strcmp(mode, 'forward')
-                 dvar(1:end - 1, :) = diff(var);
-                 dvar(end, :) = var(end, :) - var(end - 1, :); % backward diff at the edge
-                 dvar = dvar/dt;
-             elseif strcmp(mode, 'backward') 
-                 dvar(1, :) = var(2, :) - var(1, :); % fwd diff at the edge
-                 dvar(2:end, :) = diff(var);
-                 dvar = dvar/dt;
-             elseif strcmp(mode, 'center')
-                 % calculate first order backward difference at the edges
-                 % of the domain
-                 dvar(1, :) = (var(2, :) - var(1, :))/dt;
-                 dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
-                 dvar(2: end - 1, :) = (var(3:end, :) - var(1:end - 2, :))/(2*dt);
-             elseif strcmp(mode, 'center_5point')
-                 % five point method for the first derivative
-                 %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h
-                 % calculate first order backward difference at the edges
-                 % of the domain and center at the second and the second
-                 % before that last point
-                 dvar(1, :) = (var(2, :) - var(1, :))/dt;
-                 dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
-                 dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
-                 dvar(end - 1, :) = (var(end, :) - var(end - 2, :))/(2*dt);
-                 % main 5-point algorithm
-                 dvar(3: end - 2, :) = (var(1:end - 4, :) - 8*var(2:end - 3, :) + 8*var(4:end - 1, :) - var(5:end, :))/12/dt;
-             else
-                 error('%s is not a recognized method', mode)
-             end              
-         end
-         
-         function ddvar = calcSecondOrderDerivative(this, var, mode)
-             % calcSecondOrderDerivative: calculate the second derivation
-             % of time data: n x 1 array (will be returned at the output
-             % argument) var: n x dim array of m variables mode:
-             % 'center_5point'
-             % http://web.media.mit.edu/~crtaylor/calculator.html
-             time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
-             dt = time(2) - time(1);
-             ddvar = zeros(size(var));
-             if strcmp(mode, 'center_5point')
-                 % edge 0,1,2 -> f_xx =
-                 % (1*f[i+0]-2*f[i+1]+1*f[i+2])/(1*1.0*h**2)
-                 ddvar(1, :) = (var(1, :) - 2*var(2, :) + var(3, :))/dt^2; 
-                 ddvar(2, :) = (var(2, :) - 2*var(3, :) + var(4, :))/dt^2; 
-                 % edge end - 2, end - 1, end -> f_xx =
-                 % (1*f[i-2]-2*f[i-1]+1*f[i+0])/(1*1.0*h**2)
-                 ddvar(end, :) = (var(end - 2, :) - 2*var(end - 1, :) + var(end, :))/dt^2;   
-                 ddvar(end - 1, :) = (var(end - 3, :) - 2*var(end - 2, :) + var(end - 1, :))/dt^2;
-                 % major -2,-1,0,1,2  -> f_xx =
-                 % (-1*f[i-2]+16*f[i-1]-30*f[i+0]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
-                 ddvar(3: end - 2, :) = (-var(1:end - 4, :) + 16*var(2:end - 3, :) ...
-                     - 30*var(3:end - 2, :) + 16*var(4:end - 1, :) - var(5:end, :))/12/dt^2;
-             else
-                 error('%s is not a recognized method', mode)
-             end
-         end         
-         
-         %% SSA function       
-         function var_filt_SSA = filtSSA(this, var_raw_1d)
-             g_prev = var_raw_1d;
-%              T = 0: 1/sbj1.freq_marker : (length(var_raw_1d) - 1)/sbj1.freq_marker;
-%              [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
-%              rms_ddotg_prev = rms(ddotg_prev);
-             
-             % recursively apply the SSA to the time series until change of the rms is
-             % smaller than 1% of the previous acceleration rms
-             N_max_iter = 1;
-
-             for n = 1: N_max_iter
-                 % Step 1 Embedding
-                 %     N = length(g_prev); % signal length
-                 %     L = round(N/30); % signal length (suggested
-                 %     round(N/60))
-                 L = 30; % using fixed length provided a faster processing
-                 %  construct the Hankel matrix (for 1D data), the element in i+j = constant
-                 %  are equal (somtimes it referred to as the trajectory matrix)
-                 X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
-                 
-                 % Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
-                 % S = X*X'; [eigvec, eig_diag] = eig(S); % Sigma =
-                 % diag(sqrt(sort(diag((eig_diag)), 'descend')))
-                 [U, Sigma, V] = svd(X);
-                 
-                 % Step 3 Grouping (Eigentriple grouping)
-%                  % grouping with eigenvalues that contribute to 99.99% of the sum
-%                  eig_sum_threshold =  99.99/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
-%                  for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
-%                      if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
-%                          break;
-%                      end
-%                  end
-                 r = 1;
-                 % rank truncation for the approximation of X
-                 Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
-                 
-                 % Step 4: Reconstruction (Diagonal Averaging)
-                 g_curr = this.calcDiagonalAverage_SSA(Y);
-%                  [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
-%                  rms_ddotg_curr = rms(ddotg_curr);
-                 
-                 % check the manitude chage of the rms
-%                  if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev                   
-%                      break;
-%                  else
-%                      rms_ddotg_prev = rms_ddotg_curr;
-%                      g_prev = g_curr;
-%                  end
-             end
-             var_filt_SSA = g_curr;
-         end
-         
-         % step 4: diagonal average
-         function g = calcDiagonalAverage_SSA(~, Y)
-             L = size(Y, 1); K = size(Y, 2);          
-             L_star = min([K, L]); K_star = max([K, L]);
-             N = L_star + K_star - 1; % actual length of the time series
-             g = zeros(N, 1); 
-             for k = 1 : N
-                 diag_sum = 0; % reset the summation for the new g(k)
-                 if 1 <= k && k < L_star % perform L_star - 1 time in this case
-                     for m = 1 : k
-                         diag_sum = diag_sum + Y(m, k + 1 - m);
-                     end
-                     diag_avg = diag_sum/k; % find the diagonal avg for the g(k)
-                 elseif L_star <= k && k < K_star + 1 % perform K_star - L_star + 1 time in this case
-                     for m = 1 : L_star % perfom
-                         diag_sum = diag_sum + Y(m, k + 1 - m);
-                     end
-                     diag_avg = diag_sum/L_star; % find the diagonal avg for the g(k)
-                 elseif K_star + 1 <= k && k <= N % perfrom L_star - 1 time in this case
-                     for m = k + 1 - K_star: N + 1 - K_star
-                         diag_sum = diag_sum + Y(m, k + 1 - m);
-                     end
-                     diag_avg = diag_sum/(N - k + 1); % find the diagonal avg for the g(k)
-                 end
-                 g(k) = diag_avg;
-             end
-         end
-             
-         %% instantaneous Screw Axis calculation
-         function J = calcInertiaTensor(~, r_mat)
-             % calcInertiaTensor: calculate the inertia tensor each cluster
-             % input
-             % r: n_time_step x 3 x marker_no, static marker pos from
-             % centroid
-             J = zeros(3, 3, size(r_mat, 1));
-             J(1, 1, :) = sum(r_mat(:, 2, :).^2 + r_mat(:, 3, :).^2, 3);            
-             J(2, 2, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 3, :).^2, 3);
-             J(3, 3, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 2, :).^2, 3);
-             J(1, 2, :) = -sum(r_mat(:, 1, :).*r_mat(:, 2, :), 3);
-             J(1, 3, :) = -sum(r_mat(:, 1, :).*r_mat(:, 3, :), 3);
-             J(2, 3, :) = -sum(r_mat(:, 2, :).*r_mat(:, 3, :), 3);
-             J(2, 1, :) = J(1, 2, :);
-             J(3, 1, :) = J(1, 3, :);
-             J(3, 2, :) = J(2, 3, :);
-         end
-         
-         function [v_g, omega, centroid_pos] = calcISA_cluster(this, trial_no, cluster_name)
-             % calcISA: calculate all variables of the ISA
-             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name);
-             
-             segment_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos;
-             segment_marker_vel = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel;
-             
-             v_g = mean(segment_marker_vel, 3);
-             centroid_pos = mean(segment_marker_pos, 3);
-             r_mat = segment_marker_pos - centroid_pos;
-             J = this.calcInertiaTensor(r_mat);
-             
-             omega = zeros(size(r_mat, 1), 3);
-             r_cross_v = sum(cross(r_mat, segment_marker_vel, 2), 3);
-             for i = 1: size(omega, 1)
-                 omega(i,:) = J(:,:,i)\r_cross_v(i, :)';
-             end
-             
-             omega_norm = vecnorm(omega, 2, 2);
-             
-             % Chasles' theorem for finding the ISA location in space
-             % relative to the marker centroid
-             GH = (cross(omega, v_g, 2))./omega_norm.^2;
-             ISA_pos = centroid_pos + GH;
-             
-             % calculate the finite angle of rotation
-             T = this.calcViconTime(length(segment_marker_pos));
-             theta = cumtrapz(T, omega);
-             
-             % find magnitude of v_s (v // to the screw axis)
-             v_s = v_g + cross(omega, GH, 2);
-             
-             T_indcs = find(omega_norm >= 0.25*max(omega_norm));
-             
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_g = v_g;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega = omega;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega_norm = omega_norm;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).ISA_pos = ISA_pos;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).centroid_pos = centroid_pos;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).theta = theta;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).T_indcs = T_indcs;
-             this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_s = v_s;
-         end
-         
-         function updateISAs(this, trial_no)
-             % calculate ISA from both segments and store in "trial
-             % derivative data"
-             [v_g_pelv, omega_pelv, centroid_pelv] = this.calcISA_cluster(trial_no, 'Pelvis Brace');
-             [v_g_thor, omega_thor, centroid_thor] = this.calcISA_cluster(trial_no, 'Thorax Brace');
-              
-             % calculate the relative screw axis between pelvis and thorax           
-             % get the psis positions
-             indx_r_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'R_PSIS');
-             indx_l_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'L_PSIS');
-             pos_r_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_r_psis);
-             pos_l_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_l_psis);
-             pos_m_psis = (pos_r_psis + pos_l_psis)/2;
-             
-             pelv_g2m_psis = pos_m_psis - centroid_pelv;
-             thor_g2m_psis = pos_m_psis - centroid_thor;
-             
-             v_m_psis_on_pelv = v_g_pelv + cross(omega_pelv, pelv_g2m_psis, 2);
-             v_m_psis_on_thor = v_g_thor + cross(omega_thor, thor_g2m_psis, 2);
-             v_m_psis_r = v_m_psis_on_thor - v_m_psis_on_pelv;
-             
-             omega_r = omega_thor - omega_pelv;
-             omega_r_norm = vecnorm(omega_r, 2, 2);
-             
-             PH = (cross(omega_r, v_m_psis_r, 2))./omega_r_norm.^2;
-             ISA_r_pos =  pos_m_psis + PH;
-             
-             % calculate the finite angle of rotation
-             Tr = 0: 1/this.freq_marker : (length(pos_m_psis) - 1)/this.freq_marker;
-             theta_r = cumtrapz(Tr, omega_r);
-             
-             T_indcs_r = find(omega_r_norm >= 0.25*max(omega_r_norm));  
-             
-             v_s_r = v_m_psis_r  + cross(omega_r, PH, 2);
-             
-             this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r = v_m_psis_r;
-             this.sbj_WRAPS2(trial_no).relISA.omega_r = omega_r;
-             this.sbj_WRAPS2(trial_no).relISA.omega_r_norm = omega_r_norm;
-             this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos = ISA_r_pos;
-             this.sbj_WRAPS2(trial_no).relISA.pos_m_psis = pos_m_psis;
-             this.sbj_WRAPS2(trial_no).relISA.theta_r = theta_r;
-             this.sbj_WRAPS2(trial_no).relISA.T_indcs_r = T_indcs_r;
-             this.sbj_WRAPS2(trial_no).relISA.v_s = v_s_r;
-             
-             % find ISA_r with respect to the pelvis brace moving frame
-             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
-             T_v2pelv_brace = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg;
-             ISA_r_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, ISA_r_pos);
-             omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, omega_r);
-             
-             this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace =  ISA_r_wrt_pelvis_brace;
-             this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
-             
-             disp(['Updated ISAs in trial no. ', num2str(trial_no)])
-         end
-         
-         function vizISAs(this, trial_no)           
-             n_down_sample_ratio = 100;
-             
-             pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
-             thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
-             
-             centroid_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).centroid_pos;
-             centroid_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).centroid_pos;
-             
-             T_indcs_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).T_indcs;
-             T_indcs_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).T_indcs;
-             
-             omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
-             omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
-             
-             v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
-             v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
-             
-             ISA_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).ISA_pos;
-             ISA_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).ISA_pos;        
-             
-             % get relative data
-             ISA_r = this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos;
-             T_indcs_r = this.sbj_WRAPS2(trial_no).relISA.T_indcs_r;
-             v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
-             omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
-             ISA_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace;
-             pos_m_psis = this.sbj_WRAPS2(trial_no).relISA.pos_m_psis;
-             omega_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace;
-             
-             % scatter plot of centroid
-             scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
-             scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
-             
-             % absolute ISA of thorax brace
-             Tt = T_indcs_thor(1:round(length(T_indcs_thor)/n_down_sample_ratio):end);
-             quiver3(ISA_thor(Tt,1), ISA_thor(Tt,2), ISA_thor(Tt,3), ...
-                 omega_thor(Tt,1), omega_thor(Tt,2), omega_thor(Tt,3), 10);        
-             quiver3(centroid_thor(Tt,1), centroid_thor(Tt,2), centroid_thor(Tt,3), v_g_thor(Tt,1), v_g_thor(Tt,2), v_g_thor(Tt,3), 10);
-             
-             % absolute ISA of pelvis brace
-             Tp = T_indcs_pelv(1:round(length(T_indcs_pelv)/n_down_sample_ratio):end);
-             quiver3(ISA_pelv(Tp,1), ISA_pelv(Tp,2), ISA_pelv(Tp,3),...
-                 omega_pelv(Tp,1), omega_pelv(Tp,2), omega_pelv(Tp,3), 10);
-             quiver3(centroid_pelv(Tp,1), centroid_pelv(Tp,2), centroid_pelv(Tp,3),v_g_pelv(Tp,1), v_g_pelv(Tp,2), v_g_pelv(Tp,3), 10);
-             
-             % absolute relative ISA of 
-             scatter3(pos_m_psis(:,1), pos_m_psis(:,2), pos_m_psis(:,3));
-             Tr = T_indcs_r(1:round(length(T_indcs_r)/n_down_sample_ratio):end);
-             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
-                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10);
-             quiver3(pos_m_psis(Tr,1), pos_m_psis(Tr,2), pos_m_psis(Tr,3), v_m_psis_r(Tr,1), v_m_psis_r(Tr,2), v_m_psis_r(Tr,3), 10);
-             axis equal;
-             
-             % plot the ISA and omega wrt to the pelvis frame
-             figure;
-             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
-                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10); hold on;
-             quiver3(ISA_r_wrt_pelvis_brace(Tr,1), ISA_r_wrt_pelvis_brace(Tr,2), ISA_r_wrt_pelvis_brace(Tr,3),...
-                 omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10);
-             axis equal;
-             
-         end
-         
-         %% Visualization
-         function plotISAdata(this, trial_no)
-             pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
-             thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
-             
-             v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
-             omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
-             theta_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).theta;
-             
-             v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
-             omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
-             theta_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).theta;
-             
-             v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
-             omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
-             theta_r = this.sbj_WRAPS2(trial_no).relISA.theta_r;
-             
-             T = this.calcViconTime(length(omega_pelv));
-             
-             figure;
-             plot(T, omega_pelv); hold on;
-             plot(T, omega_thor, ':');
-             plot(T, omega_r, '--');
-             legend('\omega_{pelv,x}','\omega_{pelv,y}','\omega_{pelv,z}', ...
-                 '\omega_{thor,x}','\omega_{thor,y}','\omega_{thor,z}', ...
-                 '\omega_{r,x}','\omega_{r,y}','\omega_{r,z}');
-             title(this.raw_data(trial_no).marker_trial_name)
-             
-             figure;
-             plot(T, theta_pelv); hold on;
-             plot(T, theta_thor, ':');
-             plot(T, theta_r, '--');
-             legend('\theta_{pelv,x}','\theta_{pelv,y}','\theta_{pelv,z}',...
-                 '\theta_{thor,x}','\theta_{thor,y}','\theta_{thor,z}',...
-                 '\theta_{r,x}','\theta_{r,y}','\theta_{r,z}');
-             title(this.raw_data(trial_no).marker_trial_name)
-             
-             figure;
-             plot(T, v_g_pelv); hold on;
-             plot(T, v_g_thor, ':');
-             plot(T, v_m_psis_r, '--');
-             legend('v_{pelv,x}','v_{pelv,y}','v_{pelv,z}', ...
-                 'v_{thor,x}','v_{thor,y}','v_{thor,z}', ...
-                 'v_{r,x}','v_{r,y}','v_{r,z}');
-             title(this.raw_data(trial_no).marker_trial_name)
-         end
-         
-         function plotCoPvsTime(this, trial_no, plate_name)
-             var_name = 'CoP';
-             plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
-             var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
-             var = this.raw_data(trial_no).fplate_data(plate_no).fplate_var(:, :, var_no); %#ok<FNDSB>
-             t = (0:1:length(var)-1)/this.freq_fplate;
-             plot(t, var);
-             xlim([0 max(t)]);
-             title([plate_name, ': ', var_name])
-         end
-         
-         function plotFvsTime(this, trial_no, plate_name)
+        %% Kinematics Functions
+        function T = calcViconTime(this, N)
+            % calcViconTime: Return array of time steps based on the
+            % length input
+            T = 0: 1/this.freq_marker : (N - 1)/this.freq_marker;
+        end
+        
+        function dvar = calcFirstOrderDerivative(this, var, mode)
+            % calcFirstOrderDerivative: calculate the first derivation of
+            % time data: n x 1 array (will be returned at the output
+            % argument) var: n x dim array of m variables mode: 'forward',
+            % 'backward', or 'center', or 'center_5point'
+            time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
+            dt = time(2) - time(1);
+            dvar = zeros(size(var));
+            if strcmp(mode, 'forward')
+                dvar(1:end - 1, :) = diff(var);
+                dvar(end, :) = var(end, :) - var(end - 1, :); % backward diff at the edge
+                dvar = dvar/dt;
+            elseif strcmp(mode, 'backward')
+                dvar(1, :) = var(2, :) - var(1, :); % fwd diff at the edge
+                dvar(2:end, :) = diff(var);
+                dvar = dvar/dt;
+            elseif strcmp(mode, 'center')
+                % calculate first order backward difference at the edges
+                % of the domain
+                dvar(1, :) = (var(2, :) - var(1, :))/dt;
+                dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
+                dvar(2: end - 1, :) = (var(3:end, :) - var(1:end - 2, :))/(2*dt);
+            elseif strcmp(mode, 'center_5point')
+                % five point method for the first derivative
+                %f'(xi) = x(i-2)-8x(i-1)+8x(i+1)-x(i+2)/12h
+                % calculate first order backward difference at the edges
+                % of the domain and center at the second and the second
+                % before that last point
+                dvar(1, :) = (var(2, :) - var(1, :))/dt;
+                dvar(end, :) = (var(end, :) - var(end - 1, :))/dt;
+                dvar(2, :) = (var(3, :) - var(1, :))/(2*dt);
+                dvar(end - 1, :) = (var(end, :) - var(end - 2, :))/(2*dt);
+                % main 5-point algorithm
+                dvar(3: end - 2, :) = (var(1:end - 4, :) - 8*var(2:end - 3, :) + 8*var(4:end - 1, :) - var(5:end, :))/12/dt;
+            else
+                error('%s is not a recognized method', mode)
+            end
+        end
+        
+        function ddvar = calcSecondOrderDerivative(this, var, mode)
+            % calcSecondOrderDerivative: calculate the second derivation
+            % of time data: n x 1 array (will be returned at the output
+            % argument) var: n x dim array of m variables mode:
+            % 'center_5point'
+            % http://web.media.mit.edu/~crtaylor/calculator.html
+            time = 0: 1/this.freq_marker : (length(var) - 1)/this.freq_marker;
+            dt = time(2) - time(1);
+            ddvar = zeros(size(var));
+            if strcmp(mode, 'center_5point')
+                % edge 0,1,2 -> f_xx =
+                % (1*f[i+0]-2*f[i+1]+1*f[i+2])/(1*1.0*h**2)
+                ddvar(1, :) = (var(1, :) - 2*var(2, :) + var(3, :))/dt^2;
+                ddvar(2, :) = (var(2, :) - 2*var(3, :) + var(4, :))/dt^2;
+                % edge end - 2, end - 1, end -> f_xx =
+                % (1*f[i-2]-2*f[i-1]+1*f[i+0])/(1*1.0*h**2)
+                ddvar(end, :) = (var(end - 2, :) - 2*var(end - 1, :) + var(end, :))/dt^2;
+                ddvar(end - 1, :) = (var(end - 3, :) - 2*var(end - 2, :) + var(end - 1, :))/dt^2;
+                % major -2,-1,0,1,2  -> f_xx =
+                % (-1*f[i-2]+16*f[i-1]-30*f[i+0]+16*f[i+1]-1*f[i+2])/(12*1.0*h**2)
+                ddvar(3: end - 2, :) = (-var(1:end - 4, :) + 16*var(2:end - 3, :) ...
+                    - 30*var(3:end - 2, :) + 16*var(4:end - 1, :) - var(5:end, :))/12/dt^2;
+            else
+                error('%s is not a recognized method', mode)
+            end
+        end
+        
+        %% SSA function
+        function var_filt_SSA = filtSSA(this, var_raw_1d)
+            g_prev = var_raw_1d;
+            %              T = 0: 1/sbj1.freq_marker : (length(var_raw_1d) - 1)/sbj1.freq_marker;
+            %              [T, ddotg_prev] = sbj1.calcSecondOrderDerivative(T, g_prev, 'center_5point');
+            %              rms_ddotg_prev = rms(ddotg_prev);
+            
+            % recursively apply the SSA to the time series until change of the rms is
+            % smaller than 1% of the previous acceleration rms
+            N_max_iter = 1;
+            
+            for n = 1: N_max_iter
+                % Step 1 Embedding
+                %     N = length(g_prev); % signal length
+                %     L = round(N/30); % signal length (suggested
+                %     round(N/60))
+                L = 30; % using fixed length provided a faster processing
+                %  construct the Hankel matrix (for 1D data), the element in i+j = constant
+                %  are equal (somtimes it referred to as the trajectory matrix)
+                X = hankel(g_prev(1:L), g_prev(L: end)); % (size L x N - L + 1)
+                
+                % Step 2 SVD (performs a singular value decomposition of matrix A, such that A = U*Sigma*V'.)
+                % S = X*X'; [eigvec, eig_diag] = eig(S); % Sigma =
+                % diag(sqrt(sort(diag((eig_diag)), 'descend')))
+                [U, Sigma, V] = svd(X);
+                
+                % Step 3 Grouping (Eigentriple grouping)
+                %                  % grouping with eigenvalues that contribute to 99.99% of the sum
+                %                  eig_sum_threshold =  99.99/100*trace(Sigma(1:size(Sigma, 1), 1:size(Sigma, 1)));
+                %                  for r = 1:size(Sigma, 1) % number of first elementary matrices used (4 < r <= L)
+                %                      if trace(Sigma(1:r + 1, 1:r + 1)) > eig_sum_threshold
+                %                          break;
+                %                      end
+                %                  end
+                r = 1;
+                % rank truncation for the approximation of X
+                Y = U(:, 1:r)*Sigma(1:r, 1:r)*V(:, 1:r)';
+                
+                % Step 4: Reconstruction (Diagonal Averaging)
+                g_curr = this.calcDiagonalAverage_SSA(Y);
+                %                  [T, ddotg_curr] = sbj1.calcSecondOrderDerivative(T, g_curr, 'center_5point');
+                %                  rms_ddotg_curr = rms(ddotg_curr);
+                
+                % check the manitude chage of the rms
+                %                  if abs(rms_ddotg_curr - rms_ddotg_prev) < 0.01*rms_ddotg_prev
+                %                      break;
+                %                  else
+                %                      rms_ddotg_prev = rms_ddotg_curr;
+                %                      g_prev = g_curr;
+                %                  end
+            end
+            var_filt_SSA = g_curr;
+        end
+        
+        % step 4: diagonal average
+        function g = calcDiagonalAverage_SSA(~, Y)
+            L = size(Y, 1); K = size(Y, 2);
+            L_star = min([K, L]); K_star = max([K, L]);
+            N = L_star + K_star - 1; % actual length of the time series
+            g = zeros(N, 1);
+            for k = 1 : N
+                diag_sum = 0; % reset the summation for the new g(k)
+                if 1 <= k && k < L_star % perform L_star - 1 time in this case
+                    for m = 1 : k
+                        diag_sum = diag_sum + Y(m, k + 1 - m);
+                    end
+                    diag_avg = diag_sum/k; % find the diagonal avg for the g(k)
+                elseif L_star <= k && k < K_star + 1 % perform K_star - L_star + 1 time in this case
+                    for m = 1 : L_star % perfom
+                        diag_sum = diag_sum + Y(m, k + 1 - m);
+                    end
+                    diag_avg = diag_sum/L_star; % find the diagonal avg for the g(k)
+                elseif K_star + 1 <= k && k <= N % perfrom L_star - 1 time in this case
+                    for m = k + 1 - K_star: N + 1 - K_star
+                        diag_sum = diag_sum + Y(m, k + 1 - m);
+                    end
+                    diag_avg = diag_sum/(N - k + 1); % find the diagonal avg for the g(k)
+                end
+                g(k) = diag_avg;
+            end
+        end
+        
+        %% instantaneous Screw Axis calculation
+        function J = calcInertiaTensor(~, r_mat)
+            % calcInertiaTensor: calculate the inertia tensor each cluster
+            % input
+            % r: n_time_step x 3 x marker_no, static marker pos from
+            % centroid
+            J = zeros(3, 3, size(r_mat, 1));
+            J(1, 1, :) = sum(r_mat(:, 2, :).^2 + r_mat(:, 3, :).^2, 3);
+            J(2, 2, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 3, :).^2, 3);
+            J(3, 3, :) = sum(r_mat(:, 1, :).^2 + r_mat(:, 2, :).^2, 3);
+            J(1, 2, :) = -sum(r_mat(:, 1, :).*r_mat(:, 2, :), 3);
+            J(1, 3, :) = -sum(r_mat(:, 1, :).*r_mat(:, 3, :), 3);
+            J(2, 3, :) = -sum(r_mat(:, 2, :).*r_mat(:, 3, :), 3);
+            J(2, 1, :) = J(1, 2, :);
+            J(3, 1, :) = J(1, 3, :);
+            J(3, 2, :) = J(2, 3, :);
+        end
+        
+        function [v_g, omega, centroid_pos] = calcISA_cluster(this, trial_no, cluster_name)
+            % calcISA: calculate all variables of the ISA
+            cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, cluster_name);
+            
+            segment_marker_pos = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_pos;
+            segment_marker_vel = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).marker_vel;
+            
+            v_g = mean(segment_marker_vel, 3);
+            centroid_pos = mean(segment_marker_pos, 3);
+            r_mat = segment_marker_pos - centroid_pos;
+            J = this.calcInertiaTensor(r_mat);
+            
+            omega = zeros(size(r_mat, 1), 3);
+            r_cross_v = sum(cross(r_mat, segment_marker_vel, 2), 3);
+            for i = 1: size(omega, 1)
+                omega(i,:) = J(:,:,i)\r_cross_v(i, :)';
+            end
+            
+            omega_norm = vecnorm(omega, 2, 2);
+            
+            % Chasles' theorem for finding the ISA location in space
+            % relative to the marker centroid
+            GH = (cross(omega, v_g, 2))./omega_norm.^2;
+            ISA_pos = centroid_pos + GH;
+            
+            % calculate the finite angle of rotation
+            T = this.calcViconTime(length(segment_marker_pos));
+            theta = cumtrapz(T, omega);
+            
+            % find magnitude of v_s (v // to the screw axis)
+            v_s = v_g + cross(omega, GH, 2);
+            
+            T_indcs = find(omega_norm >= 0.25*max(omega_norm));
+            
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_g = v_g;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega = omega;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).omega_norm = omega_norm;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).ISA_pos = ISA_pos;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).centroid_pos = centroid_pos;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).theta = theta;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).T_indcs = T_indcs;
+            this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).v_s = v_s;
+        end
+        
+        function updateISAs(this, trial_no)
+            % calculate ISA from both segments and store in "trial
+            % derivative data"
+            [v_g_pelv, omega_pelv, centroid_pelv] = this.calcISA_cluster(trial_no, 'Pelvis Brace');
+            [v_g_thor, omega_thor, centroid_thor] = this.calcISA_cluster(trial_no, 'Thorax Brace');
+            
+            % calculate the relative screw axis between pelvis and thorax
+            % get the psis positions
+            indx_r_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'R_PSIS');
+            indx_l_psis = strcmp(this.sbj_anthro(trial_no).torso_landmark_names, 'L_PSIS');
+            pos_r_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_r_psis);
+            pos_l_psis = this.sbj_anthro(trial_no).landmark_pos(:, :, indx_l_psis);
+            pos_m_psis = (pos_r_psis + pos_l_psis)/2;
+            
+            pelv_g2m_psis = pos_m_psis - centroid_pelv;
+            thor_g2m_psis = pos_m_psis - centroid_thor;
+            
+            v_m_psis_on_pelv = v_g_pelv + cross(omega_pelv, pelv_g2m_psis, 2);
+            v_m_psis_on_thor = v_g_thor + cross(omega_thor, thor_g2m_psis, 2);
+            v_m_psis_r = v_m_psis_on_thor - v_m_psis_on_pelv;
+            
+            omega_r = omega_thor - omega_pelv;
+            omega_r_norm = vecnorm(omega_r, 2, 2);
+            
+            PH = (cross(omega_r, v_m_psis_r, 2))./omega_r_norm.^2;
+            ISA_r_pos =  pos_m_psis + PH;
+            
+            % calculate the finite angle of rotation
+            Tr = 0: 1/this.freq_marker : (length(pos_m_psis) - 1)/this.freq_marker;
+            theta_r = cumtrapz(Tr, omega_r);
+            
+            T_indcs_r = find(omega_r_norm >= 0.25*max(omega_r_norm));
+            
+            v_s_r = v_m_psis_r  + cross(omega_r, PH, 2);
+            
+            this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r = v_m_psis_r;
+            this.sbj_WRAPS2(trial_no).relISA.omega_r = omega_r;
+            this.sbj_WRAPS2(trial_no).relISA.omega_r_norm = omega_r_norm;
+            this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos = ISA_r_pos;
+            this.sbj_WRAPS2(trial_no).relISA.pos_m_psis = pos_m_psis;
+            this.sbj_WRAPS2(trial_no).relISA.theta_r = theta_r;
+            this.sbj_WRAPS2(trial_no).relISA.T_indcs_r = T_indcs_r;
+            this.sbj_WRAPS2(trial_no).relISA.v_s = v_s_r;
+            
+            % find ISA_r with respect to the pelvis brace moving frame
+            cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            T_v2pelv_brace = this.sbj_WRAPS2(trial_no).trial_transform_data(cluster_no).transforms_vicon2seg;
+            ISA_r_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, ISA_r_pos);
+            omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, omega_r);
+            
+            this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace =  ISA_r_wrt_pelvis_brace;
+            this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
+            
+            disp(['Updated ISAs in trial no. ', num2str(trial_no)])
+        end
+        
+        function vizISAs(this, trial_no)
+            n_down_sample_ratio = 100;
+            
+            pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+            
+            centroid_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).centroid_pos;
+            centroid_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).centroid_pos;
+            
+            T_indcs_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).T_indcs;
+            T_indcs_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).T_indcs;
+            
+            omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
+            omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
+            
+            v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
+            v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
+            
+            ISA_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).ISA_pos;
+            ISA_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).ISA_pos;
+            
+            % get relative data
+            ISA_r = this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos;
+            T_indcs_r = this.sbj_WRAPS2(trial_no).relISA.T_indcs_r;
+            v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
+            omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
+            ISA_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace;
+            pos_m_psis = this.sbj_WRAPS2(trial_no).relISA.pos_m_psis;
+            omega_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace;
+            
+            % scatter plot of centroid
+            scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
+            scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
+            
+            % absolute ISA of thorax brace
+            Tt = T_indcs_thor(1:round(length(T_indcs_thor)/n_down_sample_ratio):end);
+            quiver3(ISA_thor(Tt,1), ISA_thor(Tt,2), ISA_thor(Tt,3), ...
+                omega_thor(Tt,1), omega_thor(Tt,2), omega_thor(Tt,3), 10);
+            quiver3(centroid_thor(Tt,1), centroid_thor(Tt,2), centroid_thor(Tt,3), v_g_thor(Tt,1), v_g_thor(Tt,2), v_g_thor(Tt,3), 10);
+            
+            % absolute ISA of pelvis brace
+            Tp = T_indcs_pelv(1:round(length(T_indcs_pelv)/n_down_sample_ratio):end);
+            quiver3(ISA_pelv(Tp,1), ISA_pelv(Tp,2), ISA_pelv(Tp,3),...
+                omega_pelv(Tp,1), omega_pelv(Tp,2), omega_pelv(Tp,3), 10);
+            quiver3(centroid_pelv(Tp,1), centroid_pelv(Tp,2), centroid_pelv(Tp,3),v_g_pelv(Tp,1), v_g_pelv(Tp,2), v_g_pelv(Tp,3), 10);
+            
+            % absolute relative ISA of
+            scatter3(pos_m_psis(:,1), pos_m_psis(:,2), pos_m_psis(:,3));
+            Tr = T_indcs_r(1:round(length(T_indcs_r)/n_down_sample_ratio):end);
+            quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
+                omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10);
+            quiver3(pos_m_psis(Tr,1), pos_m_psis(Tr,2), pos_m_psis(Tr,3), v_m_psis_r(Tr,1), v_m_psis_r(Tr,2), v_m_psis_r(Tr,3), 10);
+            axis equal;
+            
+            % plot the ISA and omega wrt to the pelvis frame
+            figure;
+            quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
+                omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10); hold on;
+            quiver3(ISA_r_wrt_pelvis_brace(Tr,1), ISA_r_wrt_pelvis_brace(Tr,2), ISA_r_wrt_pelvis_brace(Tr,3),...
+                omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10);
+            axis equal;
+            
+        end
+        
+        %% Visualization
+        function plotISAdata(this, trial_no)
+            pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
+            thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
+            
+            v_g_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).v_g;
+            omega_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).omega;
+            theta_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).theta;
+            
+            v_g_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).v_g;
+            omega_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).omega;
+            theta_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).theta;
+            
+            v_m_psis_r = this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r;
+            omega_r = this.sbj_WRAPS2(trial_no).relISA.omega_r;
+            theta_r = this.sbj_WRAPS2(trial_no).relISA.theta_r;
+            
+            T = this.calcViconTime(length(omega_pelv));
+            
+            figure;
+            plot(T, omega_pelv); hold on;
+            plot(T, omega_thor, ':');
+            plot(T, omega_r, '--');
+            legend('\omega_{pelv,x}','\omega_{pelv,y}','\omega_{pelv,z}', ...
+                '\omega_{thor,x}','\omega_{thor,y}','\omega_{thor,z}', ...
+                '\omega_{r,x}','\omega_{r,y}','\omega_{r,z}');
+            title(this.raw_data(trial_no).marker_trial_name)
+            
+            figure;
+            plot(T, theta_pelv); hold on;
+            plot(T, theta_thor, ':');
+            plot(T, theta_r, '--');
+            legend('\theta_{pelv,x}','\theta_{pelv,y}','\theta_{pelv,z}',...
+                '\theta_{thor,x}','\theta_{thor,y}','\theta_{thor,z}',...
+                '\theta_{r,x}','\theta_{r,y}','\theta_{r,z}');
+            title(this.raw_data(trial_no).marker_trial_name)
+            
+            figure;
+            plot(T, v_g_pelv); hold on;
+            plot(T, v_g_thor, ':');
+            plot(T, v_m_psis_r, '--');
+            legend('v_{pelv,x}','v_{pelv,y}','v_{pelv,z}', ...
+                'v_{thor,x}','v_{thor,y}','v_{thor,z}', ...
+                'v_{r,x}','v_{r,y}','v_{r,z}');
+            title(this.raw_data(trial_no).marker_trial_name)
+        end
+        
+        function plotCoPvsTime(this, trial_no, plate_name)
+            var_name = 'CoP';
+            plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
+            var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
+            var = this.raw_data(trial_no).fplate_data(plate_no).fplate_var(:, :, var_no); %#ok<FNDSB>
+            t = (0:1:length(var)-1)/this.freq_fplate;
+            plot(t, var);
+            xlim([0 max(t)]);
+            title([plate_name, ': ', var_name])
+        end
+        
+        function plotFvsTime(this, trial_no, plate_name)
             var_name = 'Force';
             plate_no = find(strcmp([this.raw_data(trial_no).fplate_data.fplate_name], plate_name));
             var_no = find(strcmp(this.raw_data(trial_no).fplate_data(plate_no).fplate_var_names, var_name));
@@ -1783,7 +1790,7 @@ classdef Subject < handle
             ankle_l_line = [T_foot_l_prox(1:3, 4), T_foot_l_dist(1:3, 4), T_heel_l(1:3, 4), T_foot_l_prox(1:3, 4)];
             
             plot3(ankle_r_line(1, :), ankle_r_line(2, :), ankle_r_line(3, :), 'k:');
-            plot3(ankle_l_line(1, :), ankle_l_line(2, :), ankle_l_line(3, :), 'k:');        
+            plot3(ankle_l_line(1, :), ankle_l_line(2, :), ankle_l_line(3, :), 'k:');
         end
         
         function plotSegmentCM(this, trial_no, viz_time_step)
