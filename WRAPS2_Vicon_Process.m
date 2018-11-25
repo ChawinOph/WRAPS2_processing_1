@@ -78,18 +78,18 @@ toc
 %% visualize the data
 sbj1.vizTrial(trial_no, 1000);
 sbj1.plotISAdata(trial_no);
-
-sbj1.vizTrial(2, 1000);
-sbj1.plotISAdata(2);
-
-sbj1.vizTrial(3, 1000);
-sbj1.plotISAdata(3);
-
-sbj1.vizTrial(4, 1000);
-sbj1.plotISAdata(4);
-
-sbj1.vizTrial(5, 1000);
-sbj1.plotISAdata(5);
+% 
+% sbj1.vizTrial(2, 1000);
+% sbj1.plotISAdata(2);
+% 
+% sbj1.vizTrial(3, 1000);
+% sbj1.plotISAdata(3);
+% 
+% sbj1.vizTrial(4, 1000);
+% sbj1.plotISAdata(4);
+% 
+% sbj1.vizTrial(5, 1000);
+% sbj1.plotISAdata(5);
 
 %% calc the force and moment
 trial_no = 2;
@@ -134,4 +134,5 @@ title('moment')
 figure;
 plot(T, mg_mat + GRF_seat + GRF_foot);
 title('force')
+
 
