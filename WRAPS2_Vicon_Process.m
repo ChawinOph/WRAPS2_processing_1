@@ -135,4 +135,7 @@ figure;
 plot(T, mg_mat + GRF_seat + GRF_foot);
 title('force')
 
+%              u = uicontrol('Style','slider','Position',[10 50 20 340],...
+%                 'Min',1,'Max',16,'Value',1);
+
 
