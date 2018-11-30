@@ -1,0 +1,4 @@
+Static Max L-Side Bend01 Markers: WRAPS2_Chawin:P_Hip_L
+Max Reach Shoulder Ipsi Markers: WRAPS2_Chawin:P_Top_R
+Max Reach Knee Contra Markers: WRAPS2_Chawin:P_Front_L
+Max Reach Knee Center Markers: WRAPS2_Chawin:P_Hip_L
