@@ -82,8 +82,8 @@ sbj1.plotISAdata(trial_no);
 % sbj1.vizTrial(2, 1000);
 % sbj1.plotISAdata(2);
 % 
-% sbj1.vizTrial(3, 1000);
-% sbj1.plotISAdata(3);
+sbj1.vizTrial(3, 1000);
+sbj1.plotISAdata(3);
 % 
 % sbj1.vizTrial(4, 1000);
 % sbj1.plotISAdata(4);
