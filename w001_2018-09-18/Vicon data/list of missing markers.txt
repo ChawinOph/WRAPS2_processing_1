@@ -1,3 +1,6 @@
+
+Static Max R-Side Bend01 Markers: WRAPS2_Chawin:P_Back_L
+Slow Flexion-Extension Markers: WRAPS2_Chawin:P_Hip_L
 Static Max L-Side Bend01 Markers: WRAPS2_Chawin:P_Hip_L
 Max Reach Shoulder Ipsi Markers: WRAPS2_Chawin:P_Top_R
 Max Reach Knee Contra Markers: WRAPS2_Chawin:P_Front_L
@@ -7,3 +10,4 @@ Slow Lateral Markers: WRAPS2_Chawin:P_Hip_L
 Slower Lateral Markers: WRAPS2_Chawin:P_Hip_L
 Slower Twisting Markers: WRAPS2_Chawin:P_Hip_L
 Slow Twisting Markers: WRAPS2_Chawin:P_Hip_L
+
