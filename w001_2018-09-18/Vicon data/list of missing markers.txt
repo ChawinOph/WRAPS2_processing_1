@@ -5,3 +5,5 @@ Max Reach Knee Center Markers: WRAPS2_Chawin:P_Hip_L
 Slower Flexion-Extension Markers: WRAPS2_Chawin:P_Hip_L
 Slow Lateral Markers: WRAPS2_Chawin:P_Hip_L
 Slower Lateral Markers: WRAPS2_Chawin:P_Hip_L
+Slower Twisting Markers: WRAPS2_Chawin:P_Hip_L
+Slow Twisting Markers: WRAPS2_Chawin:P_Hip_L

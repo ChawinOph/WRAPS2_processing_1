@@ -35,6 +35,36 @@ markers_reach_max_shoulder_contra_trials = {'Max Reach Shoulder Contra01 Markers
 
 markers_fast_flexion_extension_trials = {'Slow Flexion-Extension Markers'}; % trial no.6
 
+markers_static_neutral_trials = {'Static Neutral02 Markers'}; % trial no.7
+
+markers_static_max_extension_trials = {'Static Max Extension02 Markers'};
+
+markers_static_max_lbend_trials = {'Static Max L-Side Bend01 Markers'};
+
+markers_static_max_rtwist_trials = {'Static Max R-Twist Markers'};
+
+markers_static_max_ltwsist_trials = {'Static Max L-Twist Markers'};
+
+markers_reach_max_shoulder_ipsi_trials = {'Max Reach Shoulder Ipsi Markers'};
+
+markers_reach_max_knee_contra_trials = {'Max Reach Knee Contra Markers'};
+
+markers_reach_max_knee_center_trials = {'Max Reach Knee Center Markers'};
+
+markers_slow_flexion_extension_trials = {'Slower Flexion-Extension Markers'};
+
+markers_fast_lateral_trials = {'Slow Lateral Markers'};
+
+markers_slow_lateral_trials = {'Slower Lateral Markers'};
+
+markers_fast_twist_trials = {'Slow Twisting Markers'};
+
+markers_slow_twist_trials = {'Slower Twisting Markers'};
+
+markers_fast_rolling_trials = {'Slow Rolling Markers'};
+
+markers_slow_rolling_trials = {'Slower Rolling01 Markers'};
+
 %% Setup VICON force plate trial file names by the order of subjects
 % forceplate_static_baseline = {'Static Max Flexion03 ForcePlate'};
 force_plate_static_max_flexion_trials = {'Static Max Flexion03 ForcePlate'}; % trial no. 1
@@ -48,6 +78,36 @@ force_plate_reach_max_shoulder_center_trials = {'Max Reach Shoulder Center01 For
 force_plate_reach_max_shoulder_contra_trials = {'Max Reach Shoulder Contra01 ForcePlate'}; % trial no. 5
 
 force_plate_fast_flexion_extension_trials = {'Slow Flexion-Extension ForcePlate'}; % trial no.6
+
+force_plate_static_neutral_trials = {'Static Neutral02 ForcePlate'}; % trial no.7
+
+force_plate_static_max_extension_trials =  {'Static Max Extension02 ForcePlate'};
+
+force_plate_static_max_lbend_trials = {'Static Max L-Side Bend01 ForcePlate'};
+
+force_plate_static_max_rtwist_trials = {'Static Max R-Twist ForcePlate'};
+
+force_plate_static_max_ltwsist_trials = {'Static Max L-Twist ForcePlate'};
+
+force_plate_reach_max_shoulder_ipsi_trials = {'Max Reach Shoulder Ipsi ForcePlate'};
+
+force_plate_reach_max_knee_contra_trials = {'Max Reach Knee Contra ForcePlate'};
+
+force_plate_reach_max_knee_center_trials = {'Max Reach Knee Center ForcePlate'};
+
+force_plate_slow_flexion_extension_trials = {'Slower Flexion-Extension ForcePlate'};
+
+force_plate_fast_lateral_trials = {'Slow Lateral ForcePlate'};
+
+force_plate_slow_lateral_trials = {'Slower Lateral ForcePlate'};
+
+force_plate_fast_twist_trials = {'Slow Twisting ForcePlate'};
+
+force_plate_slow_twist_trials = {'Slower Twisting ForcePlate'};
+
+force_plate_fast_rolling_trials = {'Slow Rolling ForcePlate'};
+
+force_plate_slow_rolling_trials = {'Slower Rolling01 ForcePlate'};
 
 %% Import Vicon marker data
 sbj_index = 1; trial_no = 1;
@@ -72,10 +132,70 @@ sbj1.importForcePlateData_csv(5, force_plate_reach_max_shoulder_contra_trials, f
 sbj1.importMarkerData_csv(6, markers_fast_flexion_extension_trials, sorted_segment_names, sorted_marker_names,  {'P_Hip_L'});
 sbj1.importForcePlateData_csv(6, force_plate_fast_flexion_extension_trials, forceplate_names, fplate_var_names);
 
+%% new files
+sbj1.importMarkerData_csv(7, markers_static_neutral_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(7, force_plate_static_neutral_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(8, markers_static_max_extension_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(8, force_plate_static_max_extension_trials, forceplate_names, fplate_var_names);
+ 
+sbj1.importMarkerData_csv(9, markers_static_max_lbend_trials, sorted_segment_names, sorted_marker_names,  {'P_Hip_L'});
+sbj1.importForcePlateData_csv(9, force_plate_static_max_lbend_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(10, markers_static_max_rtwist_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(10, force_plate_static_max_rtwist_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(11, markers_static_max_ltwsist_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(11, force_plate_static_max_ltwsist_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(12, markers_reach_max_shoulder_ipsi_trials, sorted_segment_names, sorted_marker_names,  {'P_Top_R'});
+sbj1.importForcePlateData_csv(12, force_plate_reach_max_shoulder_ipsi_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(13, markers_reach_max_knee_contra_trials, sorted_segment_names, sorted_marker_names,  {'P_Front_L'});
+sbj1.importForcePlateData_csv(13, force_plate_reach_max_knee_contra_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(14, markers_reach_max_knee_center_trials, sorted_segment_names, sorted_marker_names,  {'P_Hip_L'});
+sbj1.importForcePlateData_csv(14, force_plate_reach_max_knee_center_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(15, markers_slow_flexion_extension_trials, sorted_segment_names, sorted_marker_names, {'P_Hip_L'});
+sbj1.importForcePlateData_csv(15, force_plate_slow_flexion_extension_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(16, markers_fast_lateral_trials, sorted_segment_names, sorted_marker_names, {'P_Hip_L'});
+sbj1.importForcePlateData_csv(16, force_plate_fast_lateral_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(17, markers_slow_lateral_trials, sorted_segment_names, sorted_marker_names, {'P_Hip_L'});
+sbj1.importForcePlateData_csv(17, force_plate_slow_lateral_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(18, markers_fast_twist_trials, sorted_segment_names, sorted_marker_names, {'P_Hip_L'});
+sbj1.importForcePlateData_csv(18, force_plate_fast_twist_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(19, markers_slow_twist_trials, sorted_segment_names, sorted_marker_names, {'P_Hip_L'});
+sbj1.importForcePlateData_csv(19, force_plate_slow_twist_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(20, markers_fast_rolling_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(20, force_plate_fast_rolling_trials, forceplate_names, fplate_var_names);
+
+sbj1.importMarkerData_csv(21, markers_slow_rolling_trials, sorted_segment_names, sorted_marker_names);
+sbj1.importForcePlateData_csv(21, force_plate_slow_rolling_trials, forceplate_names, fplate_var_names);
+
 toc
 %% Calculate CM of WRAPS using CAD and scale
 
 %% visualize the data
+
+for i = 1:21
+    disp(['viztrial: ' num2str(i)])
+    if i == 7
+        sbj1.vizTrial(i, 1);
+%         pause
+        close all
+    else
+        sbj1.vizTrial(i, 1500);
+%         pause
+        close all
+    end
+end
+
 sbj1.vizTrial(trial_no, 1000);
 sbj1.plotISAdata(trial_no);
 % 
