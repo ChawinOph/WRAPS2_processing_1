@@ -153,6 +153,7 @@ classdef Subject < handle
             this.updateISAs(trial_no);
             disp(' ') % intentionally leave an empty line
             
+            
         end
         
         function importForcePlateData_csv(this, trial_no, trial_file_names, sorted_forceplate_names, sorted_forceplate_var_names)
@@ -1457,14 +1458,32 @@ classdef Subject < handle
             
             v_s_r = v_m_psis_r  + cross(omega_r, PH, 2);
             
+            % calculate the intersection with primary planes
+            
+            % find unit vector of the omega
+            unit_vec_omega = this.unitVecMat(omega_r, 2);
+            
+            % sagittal plane         
+%             t_sagit = -ISA_r_pos(:, 1)./unit_vec_omega(:, 1);
+%             abs_intersect_sagit = ISA_r_pos + t_sagit.*unit_vec_omega;
+            
+            % frontal plane
+%             intersect_front = this.ISA_r_pos
+            
+            % transverse plane
+%             intersect_trans = this.ISA_r_pos  
+            
             this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r = v_m_psis_r;
             this.sbj_WRAPS2(trial_no).relISA.omega_r = omega_r;
             this.sbj_WRAPS2(trial_no).relISA.omega_r_norm = omega_r_norm;
+            this.sbj_WRAPS2(trial_no).relISA.unit_vec_omega = unit_vec_omega;
             this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos = ISA_r_pos;
             this.sbj_WRAPS2(trial_no).relISA.pos_m_psis = pos_m_psis;
             this.sbj_WRAPS2(trial_no).relISA.theta_r = theta_r;
             this.sbj_WRAPS2(trial_no).relISA.T_indcs_r = T_indcs_r;
             this.sbj_WRAPS2(trial_no).relISA.v_s = v_s_r;
+            
+            this.sbj_WRAPS2(trial_no).relISA.abs_intersect_sagit = abs_intersect_sagit;
             
             % find ISA_r with respect to the pelvis brace moving frame
             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
@@ -1472,8 +1491,16 @@ classdef Subject < handle
             ISA_r_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, ISA_r_pos);
             omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, omega_r);
             
+%             intersect_sagit_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, abs_intersect_sagit);
+            unit_vec_omega_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, unit_vec_omega);
+            
             this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace =  ISA_r_wrt_pelvis_brace;
             this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
+            
+            t_sagit_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 1)./unit_vec_omega_wrt_pelvis_brace(:, 1);
+            intersect_sagit_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_sagit_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
+            
+            this.sbj_WRAPS2(trial_no).relISA.intersect_sagit_wrt_pelvis_brace = intersect_sagit_wrt_pelvis_brace;
             
             disp(['Updated ISAs in trial no. ', num2str(trial_no)])
         end
@@ -1498,6 +1525,8 @@ classdef Subject < handle
             
             ISA_pelv = this.sbj_WRAPS2(trial_no).trial_transform_data(pelv_cluster_no).ISA_pos;
             ISA_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).ISA_pos;
+            
+            intersect_sagit_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.intersect_sagit_wrt_pelvis_brace;
             
             % get relative data
             ISA_r = this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos;
@@ -1539,6 +1568,9 @@ classdef Subject < handle
             quiver3(ISA_r_wrt_pelvis_brace(Tr,1), ISA_r_wrt_pelvis_brace(Tr,2), ISA_r_wrt_pelvis_brace(Tr,3),...
                 omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10);
             axis equal;
+            
+            scatter3(intersect_sagit_wrt_pelvis_brace(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), ...
+                intersect_sagit_wrt_pelvis_brace(Tr, 3), '.');
             
         end
         
