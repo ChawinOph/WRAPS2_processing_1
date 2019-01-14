@@ -187,11 +187,11 @@ for i = 1:21
     disp(['viztrial: ' num2str(i)])
     if i == 7
         sbj1.vizTrial(i, 1);
-%         pause
+        pause
         close all
     else
         sbj1.vizTrial(i, 1500);
-%         pause
+        pause
         close all
     end
 end
