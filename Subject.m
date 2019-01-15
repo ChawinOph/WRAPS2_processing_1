@@ -1454,9 +1454,15 @@ classdef Subject < handle
             Tr = 0: 1/this.freq_marker : (length(pos_m_psis) - 1)/this.freq_marker;
             theta_r = cumtrapz(Tr, omega_r);
             
-            T_indcs_r = find(omega_r_norm >= 0.25*max(omega_r_norm));
+            % scpecify the threshold
+            T_indcs_r = find(omega_r_norm >= 0.50*max(omega_r_norm));
             
             v_s_r = v_m_psis_r  + cross(omega_r, PH, 2);
+            pitch_r = vecnorm(v_s_r, 2, 2)./omega_r_norm; % mm/rad
+            
+            v_s_vs_v_m_psis_ratio = vecnorm(v_s_r, 2, 2)./vecnorm(v_m_psis_r, 2, 2)*100;
+            
+            % calculate screw pitch
             
             % calculate the intersection with primary planes
             
@@ -1481,9 +1487,11 @@ classdef Subject < handle
             this.sbj_WRAPS2(trial_no).relISA.pos_m_psis = pos_m_psis;
             this.sbj_WRAPS2(trial_no).relISA.theta_r = theta_r;
             this.sbj_WRAPS2(trial_no).relISA.T_indcs_r = T_indcs_r;
-            this.sbj_WRAPS2(trial_no).relISA.v_s = v_s_r;
-            
-            this.sbj_WRAPS2(trial_no).relISA.abs_intersect_sagit = abs_intersect_sagit;
+            this.sbj_WRAPS2(trial_no).relISA.v_s_r = v_s_r;
+            this.sbj_WRAPS2(trial_no).relISA.pitch_r = pitch_r;
+            this.sbj_WRAPS2(trial_no).relISA.v_s_vs_v_m_psis_ratio = v_s_vs_v_m_psis_ratio;
+
+%             this.sbj_WRAPS2(trial_no).relISA.abs_intersect_sagit = abs_intersect_sagit;
             
             % find ISA_r with respect to the pelvis brace moving frame
             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
@@ -1498,15 +1506,22 @@ classdef Subject < handle
             this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
             
             t_sagit_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 1)./unit_vec_omega_wrt_pelvis_brace(:, 1);
+            t_front_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 2)./unit_vec_omega_wrt_pelvis_brace(:, 2);
+            t_trans_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 3)./unit_vec_omega_wrt_pelvis_brace(:, 3);
+            
             intersect_sagit_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_sagit_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
+            intersect_front_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_front_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
+            intersect_trans_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_trans_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
             
             this.sbj_WRAPS2(trial_no).relISA.intersect_sagit_wrt_pelvis_brace = intersect_sagit_wrt_pelvis_brace;
+            this.sbj_WRAPS2(trial_no).relISA.intersect_front_wrt_pelvis_brace = intersect_front_wrt_pelvis_brace;
+            this.sbj_WRAPS2(trial_no).relISA.intersect_trans_wrt_pelvis_brace = intersect_trans_wrt_pelvis_brace;
             
             disp(['Updated ISAs in trial no. ', num2str(trial_no)])
         end
         
         function vizISAs(this, trial_no)
-            n_down_sample_ratio = 100;
+            n_down_sample_ratio = 500;
             
             pelv_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
             thor_cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Thorax Brace');
@@ -1527,6 +1542,8 @@ classdef Subject < handle
             ISA_thor = this.sbj_WRAPS2(trial_no).trial_transform_data(thor_cluster_no).ISA_pos;
             
             intersect_sagit_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.intersect_sagit_wrt_pelvis_brace;
+            intersect_front_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.intersect_front_wrt_pelvis_brace;
+            intersect_trans_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.intersect_trans_wrt_pelvis_brace;
             
             % get relative data
             ISA_r = this.sbj_WRAPS2(trial_no).relISA.ISA_r_pos;
@@ -1563,15 +1580,26 @@ classdef Subject < handle
             
             % plot the ISA and omega wrt to the pelvis frame
             figure;
-            quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
-                omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10); hold on;
+%             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
+%                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10); hold on;
             quiver3(ISA_r_wrt_pelvis_brace(Tr,1), ISA_r_wrt_pelvis_brace(Tr,2), ISA_r_wrt_pelvis_brace(Tr,3),...
-                omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10);
+                omega_r_wrt_pelvis_brace(Tr,1), omega_r_wrt_pelvis_brace(Tr,2), omega_r_wrt_pelvis_brace(Tr,3), 10); hold on
             axis equal;
             
-            scatter3(intersect_sagit_wrt_pelvis_brace(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), ...
-                intersect_sagit_wrt_pelvis_brace(Tr, 3), '.');
-            
+            % scatter plot for the sagittal intersection
+%             scatter3(intersect_sagit_wrt_pelvis_brace(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), ...
+%                 intersect_sagit_wrt_pelvis_brace(Tr, 3), '.');
+            scatter3(intersect_front_wrt_pelvis_brace(Tr, 1), intersect_front_wrt_pelvis_brace(Tr, 2), ...
+                intersect_front_wrt_pelvis_brace(Tr, 3), '.');
+%             scatter3(intersect_trans_wrt_pelvis_brace(Tr, 1), intersect_trans_wrt_pelvis_brace(Tr, 2), ...
+%                 intersect_trans_wrt_pelvis_brace(Tr, 3), '.');
+
+            figure;
+            plot(intersect_front_wrt_pelvis_brace(:, 1)); hold on;
+            plot(intersect_front_wrt_pelvis_brace(:, 2));
+            plot(intersect_front_wrt_pelvis_brace(:, 3));
+            legend('x','y','z')
+%             
         end
         
         %% Visualization

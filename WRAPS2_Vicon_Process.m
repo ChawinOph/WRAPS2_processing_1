@@ -37,33 +37,33 @@ markers_fast_flexion_extension_trials = {'Slow Flexion-Extension Markers'}; % tr
 
 markers_static_neutral_trials = {'Static Neutral02 Markers'}; % trial no.7
 
-markers_static_max_extension_trials = {'Static Max Extension02 Markers'};
+markers_static_max_extension_trials = {'Static Max Extension02 Markers'}; % 8
 
-markers_static_max_lbend_trials = {'Static Max L-Side Bend01 Markers'};
+markers_static_max_lbend_trials = {'Static Max L-Side Bend01 Markers'}; % 9
 
-markers_static_max_rtwist_trials = {'Static Max R-Twist Markers'};
+markers_static_max_rtwist_trials = {'Static Max R-Twist Markers'}; % 10
 
-markers_static_max_ltwsist_trials = {'Static Max L-Twist Markers'};
+markers_static_max_ltwsist_trials = {'Static Max L-Twist Markers'}; % 11
 
-markers_reach_max_shoulder_ipsi_trials = {'Max Reach Shoulder Ipsi Markers'};
+markers_reach_max_shoulder_ipsi_trials = {'Max Reach Shoulder Ipsi Markers'}; % 12
+ 
+markers_reach_max_knee_contra_trials = {'Max Reach Knee Contra Markers'}; % 13
 
-markers_reach_max_knee_contra_trials = {'Max Reach Knee Contra Markers'};
+markers_reach_max_knee_center_trials = {'Max Reach Knee Center Markers'}; % 14
 
-markers_reach_max_knee_center_trials = {'Max Reach Knee Center Markers'};
+markers_slow_flexion_extension_trials = {'Slower Flexion-Extension Markers'}; % 15
 
-markers_slow_flexion_extension_trials = {'Slower Flexion-Extension Markers'};
+markers_fast_lateral_trials = {'Slow Lateral Markers'}; % 16
 
-markers_fast_lateral_trials = {'Slow Lateral Markers'};
+markers_slow_lateral_trials = {'Slower Lateral Markers'}; % 17
 
-markers_slow_lateral_trials = {'Slower Lateral Markers'};
+markers_fast_twist_trials = {'Slow Twisting Markers'}; % 18
 
-markers_fast_twist_trials = {'Slow Twisting Markers'};
+markers_slow_twist_trials = {'Slower Twisting Markers'}; % 19
 
-markers_slow_twist_trials = {'Slower Twisting Markers'};
+markers_fast_rolling_trials = {'Slow Rolling Markers'}; % 20
 
-markers_fast_rolling_trials = {'Slow Rolling Markers'};
-
-markers_slow_rolling_trials = {'Slower Rolling01 Markers'};
+markers_slow_rolling_trials = {'Slower Rolling01 Markers'}; % 21
 
 %% Setup VICON force plate trial file names by the order of subjects
 % forceplate_static_baseline = {'Static Max Flexion03 ForcePlate'};
@@ -183,21 +183,29 @@ toc
 
 %% visualize the data
 
-for i = 1:21
-    disp(['viztrial: ' num2str(i)])
-    if i == 7
-        sbj1.vizTrial(i, 1);
-        pause
-        close all
-    else
-        sbj1.vizTrial(i, 1500);
-        pause
-        close all
-    end
+% cyclic movement [6, 15:21]
+for i = 9
+    disp(['viztrial: ' num2str(i)])    
+    sbj1.vizTrial(i, 1);
 end
 
-sbj1.vizTrial(trial_no, 1000);
-sbj1.plotISAdata(trial_no);
+
+
+% for i = 1:21
+%     disp(['viztrial: ' num2str(i)])
+%     if i == 7
+%         sbj1.vizTrial(i, 1);
+%         pause
+%         close all
+%     else
+%         sbj1.vizTrial(i, 1500);
+%         pause
+%         close all
+%     end
+% end
+
+% sbj1.vizTrial(trial_no, 1000);
+% sbj1.plotISAdata(trial_no);
 % 
 % sbj1.vizTrial(2, 1000);
 % sbj1.plotISAdata(2);
