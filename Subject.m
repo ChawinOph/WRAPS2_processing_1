@@ -1469,16 +1469,6 @@ classdef Subject < handle
             % find unit vector of the omega
             unit_vec_omega = this.unitVecMat(omega_r, 2);
             
-            % sagittal plane         
-%             t_sagit = -ISA_r_pos(:, 1)./unit_vec_omega(:, 1);
-%             abs_intersect_sagit = ISA_r_pos + t_sagit.*unit_vec_omega;
-            
-            % frontal plane
-%             intersect_front = this.ISA_r_pos
-            
-            % transverse plane
-%             intersect_trans = this.ISA_r_pos  
-            
             this.sbj_WRAPS2(trial_no).relISA.v_m_psis_r = v_m_psis_r;
             this.sbj_WRAPS2(trial_no).relISA.omega_r = omega_r;
             this.sbj_WRAPS2(trial_no).relISA.omega_r_norm = omega_r_norm;
@@ -1490,8 +1480,6 @@ classdef Subject < handle
             this.sbj_WRAPS2(trial_no).relISA.v_s_r = v_s_r;
             this.sbj_WRAPS2(trial_no).relISA.pitch_r = pitch_r;
             this.sbj_WRAPS2(trial_no).relISA.v_s_vs_v_m_psis_ratio = v_s_vs_v_m_psis_ratio;
-
-%             this.sbj_WRAPS2(trial_no).relISA.abs_intersect_sagit = abs_intersect_sagit;
             
             % find ISA_r with respect to the pelvis brace moving frame
             cluster_no = strcmp({this.sbj_WRAPS2(trial_no).trial_transform_data.cluster_name}, 'Pelvis Brace');
@@ -1499,25 +1487,57 @@ classdef Subject < handle
             ISA_r_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, ISA_r_pos);
             omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, omega_r);
             
-%             intersect_sagit_wrt_pelvis_brace = this.calcPosInNewFrame(T_v2pelv_brace, abs_intersect_sagit);
-            unit_vec_omega_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, unit_vec_omega);
+            unit_vec_omega_r_wrt_pelvis_brace = this.calcVecInNewFrame(T_v2pelv_brace, unit_vec_omega);
             
             this.sbj_WRAPS2(trial_no).relISA.ISA_r_wrt_pelvis_brace =  ISA_r_wrt_pelvis_brace;
             this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace =  omega_r_wrt_pelvis_brace;
+            this.sbj_WRAPS2(trial_no).relISA.unit_vec_omega_wrt_pelvis_brace =  unit_vec_omega_r_wrt_pelvis_brace;
             
-            t_sagit_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 1)./unit_vec_omega_wrt_pelvis_brace(:, 1);
-            t_front_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 2)./unit_vec_omega_wrt_pelvis_brace(:, 2);
-            t_trans_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 3)./unit_vec_omega_wrt_pelvis_brace(:, 3);
+%             t_sagit_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 1)./unit_vec_omega_r_wrt_pelvis_brace(:, 1);
+%             t_front_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 2)./unit_vec_omega_r_wrt_pelvis_brace(:, 2);
+%             t_trans_wrt_pelvis_brace = -ISA_r_wrt_pelvis_brace(:, 3)./unit_vec_omega_r_wrt_pelvis_brace(:, 3);
             
-            intersect_sagit_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_sagit_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
-            intersect_front_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_front_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
-            intersect_trans_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_trans_wrt_pelvis_brace.*unit_vec_omega_wrt_pelvis_brace;
+%             intersect_sagit_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_sagit_wrt_pelvis_brace.*unit_vec_omega_r_wrt_pelvis_brace;
+%             intersect_front_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_front_wrt_pelvis_brace.*unit_vec_omega_r_wrt_pelvis_brace;
+%             intersect_trans_wrt_pelvis_brace = ISA_r_wrt_pelvis_brace + t_trans_wrt_pelvis_brace.*unit_vec_omega_r_wrt_pelvis_brace;
+
+            intersect_sagit_wrt_pelvis_brace = this.find_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 1, 0);
+%             intersect_sagit_wrt_pelvis_brace = this.find_minimal_scatter_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 1);
+            
+%             intersect_front_wrt_pelvis_brace = this.find_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 2, -100);
+            intersect_front_wrt_pelvis_brace = this.find_minimal_scatter_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 2);
+            
+%             intersect_trans_wrt_pelvis_brace = this.find_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 3, 0);
+            intersect_trans_wrt_pelvis_brace = this.find_minimal_scatter_plane_intersection(ISA_r_wrt_pelvis_brace, unit_vec_omega_r_wrt_pelvis_brace, 3);
             
             this.sbj_WRAPS2(trial_no).relISA.intersect_sagit_wrt_pelvis_brace = intersect_sagit_wrt_pelvis_brace;
             this.sbj_WRAPS2(trial_no).relISA.intersect_front_wrt_pelvis_brace = intersect_front_wrt_pelvis_brace;
             this.sbj_WRAPS2(trial_no).relISA.intersect_trans_wrt_pelvis_brace = intersect_trans_wrt_pelvis_brace;
             
             disp(['Updated ISAs in trial no. ', num2str(trial_no)])
+        end
+        
+        function intersect_pos = find_plane_intersection(~, ISA_pos, ISA_unit_vector, axis_no, plane_pos)
+           t_intersect = (plane_pos*ones(size(ISA_pos(:, axis_no))) -  ISA_pos(:, axis_no))./ISA_unit_vector(:, axis_no);
+           intersect_pos =  ISA_pos + t_intersect.*ISA_unit_vector;
+        end
+        
+        function min_dis_intersect_pos = find_minimal_scatter_plane_intersection(this, ISA_pos, ISA_unit_vector, axis_no)
+            step_size = 1; % 1 mm
+            plane_pos_min = -200;
+            plane_pos_max = 200;
+            step_pos_range = plane_pos_min: step_size: plane_pos_max;     
+            distribution = zeros(length(step_pos_range), 1);
+           
+            for i = 1: length(step_pos_range)
+                % calculate the distribution from the origin of the plane
+                % using only distances on the plane
+                intersect_pos = this.find_plane_intersection(ISA_pos, ISA_unit_vector, axis_no, step_pos_range(i));
+                distribution(i) = mean(vecnorm(intersect_pos(:, 1:3 ~= axis_no), 2, 2));
+            end
+            
+            [~, min_distribute_index] = min(distribution);
+            min_dis_intersect_pos = this.find_plane_intersection(ISA_pos, ISA_unit_vector, axis_no, step_pos_range(min_distribute_index));     
         end
         
         function vizISAs(this, trial_no)
@@ -1587,19 +1607,54 @@ classdef Subject < handle
             axis equal;
             
             % scatter plot for the sagittal intersection
-%             scatter3(intersect_sagit_wrt_pelvis_brace(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), ...
-%                 intersect_sagit_wrt_pelvis_brace(Tr, 3), '.');
-            scatter3(intersect_front_wrt_pelvis_brace(Tr, 1), intersect_front_wrt_pelvis_brace(Tr, 2), ...
-                intersect_front_wrt_pelvis_brace(Tr, 3), '.');
+            scatter3(intersect_sagit_wrt_pelvis_brace(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), ...
+                intersect_sagit_wrt_pelvis_brace(Tr, 3), '.');
+%             scatter3(intersect_front_wrt_pelvis_brace(Tr, 1), intersect_front_wrt_pelvis_brace(Tr, 2), ...
+%                 intersect_front_wrt_pelvis_brace(Tr, 3), '.');
+%             plot3(intersect_front_wrt_pelvis_brace(Tr, 1), intersect_front_wrt_pelvis_brace(Tr, 2), ...
+%                 intersect_front_wrt_pelvis_brace(Tr, 3));
 %             scatter3(intersect_trans_wrt_pelvis_brace(Tr, 1), intersect_trans_wrt_pelvis_brace(Tr, 2), ...
 %                 intersect_trans_wrt_pelvis_brace(Tr, 3), '.');
 
             figure;
-            plot(intersect_front_wrt_pelvis_brace(:, 1)); hold on;
-            plot(intersect_front_wrt_pelvis_brace(:, 2));
-            plot(intersect_front_wrt_pelvis_brace(:, 3));
+            plot(intersect_front_wrt_pelvis_brace(Tr, 1)); hold on;
+            plot(intersect_front_wrt_pelvis_brace(Tr, 2));
+            plot(intersect_front_wrt_pelvis_brace(Tr, 3));
             legend('x','y','z')
-%             
+            title([this.raw_data(trial_no).marker_trial_name, 'frontal plane']);
+            
+            figure;
+            plot(intersect_trans_wrt_pelvis_brace(Tr, 1)); hold on;
+            plot(intersect_trans_wrt_pelvis_brace(Tr, 2));
+            plot(intersect_trans_wrt_pelvis_brace(Tr, 3));
+            legend('x','y','z');
+            title([this.raw_data(trial_no).marker_trial_name, 'transverse plane']);
+            
+            % plot the ISA position vs. angle
+            theta_r = this.sbj_WRAPS2(trial_no).relISA.theta_r;           
+            theta_r_dot = vecnorm(omega_r_wrt_pelvis_brace, 2, 2);         
+            
+            figure;
+            scatter(theta_r(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2), theta_r_dot(Tr)*500); hold on;  
+            plot(theta_r(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 2))  
+            scatter(theta_r(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 3), theta_r_dot(Tr)*500); 
+            plot(theta_r(Tr, 1), intersect_sagit_wrt_pelvis_brace(Tr, 3))  
+            title([this.raw_data(trial_no).marker_trial_name, ' Sagittal plane'])
+            
+            figure;
+            scatter(theta_r(Tr, 2), intersect_front_wrt_pelvis_brace(Tr, 1), theta_r_dot(Tr)*500); hold on;  
+            plot(theta_r(Tr, 2), intersect_front_wrt_pelvis_brace(Tr, 1))  
+            scatter(theta_r(Tr, 2), intersect_front_wrt_pelvis_brace(Tr, 3), theta_r_dot(Tr)*500); 
+            plot(theta_r(Tr, 2), intersect_front_wrt_pelvis_brace(Tr, 3))  
+            title([this.raw_data(trial_no).marker_trial_name, ' Frontal plane'])
+            
+            figure;
+            scatter(theta_r(Tr, 3), intersect_trans_wrt_pelvis_brace(Tr, 1), theta_r_dot(Tr)*500); hold on;  
+            plot(theta_r(Tr, 3), intersect_trans_wrt_pelvis_brace(Tr, 1));              
+            scatter(theta_r(Tr, 3), intersect_trans_wrt_pelvis_brace(Tr, 2), theta_r_dot(Tr)*500); 
+            plot(theta_r(Tr, 3), intersect_trans_wrt_pelvis_brace(Tr, 2));           
+            title([this.raw_data(trial_no).marker_trial_name, ' Transverse plane'])
+            
         end
         
         %% Visualization

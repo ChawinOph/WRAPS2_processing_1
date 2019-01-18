@@ -184,41 +184,32 @@ toc
 %% visualize the data
 
 % cyclic movement [6, 15:21]
-for i = 9
+for i = [6, 16]
     disp(['viztrial: ' num2str(i)])    
     sbj1.vizTrial(i, 1);
+    sbj1.plotISAdata(i);
+%     pause
+%     close all
+   
 end
 
+int_sagit = sbj1.sbj_WRAPS2(6).relISA.intersect_sagit_wrt_pelvis_brace;
+Tr_int_sagit = sbj1.sbj_WRAPS2(6).relISA.T_indcs_r;
 
+int_front = sbj1.sbj_WRAPS2(16).relISA.intersect_front_wrt_pelvis_brace;
+Tr_int_front = sbj1.sbj_WRAPS2(16).relISA.T_indcs_r;
 
-% for i = 1:21
-%     disp(['viztrial: ' num2str(i)])
-%     if i == 7
-%         sbj1.vizTrial(i, 1);
-%         pause
-%         close all
-%     else
-%         sbj1.vizTrial(i, 1500);
-%         pause
-%         close all
-%     end
-% end
+int_trans = sbj1.sbj_WRAPS2(18).relISA.intersect_trans_wrt_pelvis_brace;
+Tr_int_trans = sbj1.sbj_WRAPS2(18).relISA.T_indcs_r;
 
-% sbj1.vizTrial(trial_no, 1000);
-% sbj1.plotISAdata(trial_no);
-% 
-% sbj1.vizTrial(2, 1000);
-% sbj1.plotISAdata(2);
-% 
-sbj1.vizTrial(3, 1000);
-sbj1.plotISAdata(3);
-% 
-% sbj1.vizTrial(4, 1000);
-% sbj1.plotISAdata(4);
-% 
-% sbj1.vizTrial(5, 1000);
-% sbj1.plotISAdata(5);
+% combined_int = [int_sagit; int_front; int_trans];
+figure;
+scatter3(int_sagit(Tr_int_sagit, 1), int_sagit(Tr_int_sagit, 2), int_sagit(Tr_int_sagit, 3), '.'); hold on
+scatter3(int_front(Tr_int_front, 1), int_front(Tr_int_front, 2), int_front(Tr_int_front, 3), '.'); 
+scatter3(int_trans(Tr_int_trans, 1), int_trans(Tr_int_trans, 2), int_trans(Tr_int_trans, 3), '.');
 
+axis equal;
+    
 %% calc the force and moment
 trial_no = 2;
 total_cm_pos = sbj1.sbj_anthro(trial_no).total_cm_pos; % mm
