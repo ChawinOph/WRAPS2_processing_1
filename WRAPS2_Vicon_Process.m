@@ -183,6 +183,9 @@ toc
 
 %% visualize the data
 
+ sbj1.vizTrial(1, 1); % for presentation on 2019/01/30
+ pause;
+
 % cyclic movement [6, 15:21]
 for i = [6, 16]
     disp(['viztrial: ' num2str(i)])    
@@ -195,18 +198,30 @@ end
 
 int_sagit = sbj1.sbj_WRAPS2(6).relISA.intersect_sagit_wrt_pelvis_brace;
 Tr_int_sagit = sbj1.sbj_WRAPS2(6).relISA.T_indcs_r;
+ISA_r_wrt_pelvis_brace_FE = sbj1.sbj_WRAPS2(6).relISA.ISA_r_wrt_pelvis_brace;
+omega_r_wrt_pelvis_brace_FE= sbj1.sbj_WRAPS2(6).relISA.omega_r;
 
 int_front = sbj1.sbj_WRAPS2(16).relISA.intersect_front_wrt_pelvis_brace;
 Tr_int_front = sbj1.sbj_WRAPS2(16).relISA.T_indcs_r;
+ISA_r_wrt_pelvis_brace_LB = sbj1.sbj_WRAPS2(16).relISA.ISA_r_wrt_pelvis_brace;
+omega_r_wrt_pelvis_brace_LB = sbj1.sbj_WRAPS2(16).relISA.omega_r;
 
 int_trans = sbj1.sbj_WRAPS2(18).relISA.intersect_trans_wrt_pelvis_brace;
 Tr_int_trans = sbj1.sbj_WRAPS2(18).relISA.T_indcs_r;
+ISA_r_wrt_pelvis_brace_AR = sbj1.sbj_WRAPS2(18).relISA.ISA_r_wrt_pelvis_brace;
+omega_r_wrt_pelvis_brace_AR = sbj1.sbj_WRAPS2(18).relISA.omega_r;
 
 % combined_int = [int_sagit; int_front; int_trans];
 figure;
 scatter3(int_sagit(Tr_int_sagit, 1), int_sagit(Tr_int_sagit, 2), int_sagit(Tr_int_sagit, 3), '.'); hold on
 scatter3(int_front(Tr_int_front, 1), int_front(Tr_int_front, 2), int_front(Tr_int_front, 3), '.'); 
 scatter3(int_trans(Tr_int_trans, 1), int_trans(Tr_int_trans, 2), int_trans(Tr_int_trans, 3), '.');
+% quiver3(ISA_r_wrt_pelvis_brace_FE(Tr_int_sagit,1), ISA_r_wrt_pelvis_brace_FE(Tr_int_sagit,2), ISA_r_wrt_pelvis_brace_FE(Tr_int_sagit,3),...
+%                 omega_r_wrt_pelvis_brace_FE(Tr_int_sagit,1), omega_r_wrt_pelvis_brace_FE(Tr_int_sagit,2), omega_r_wrt_pelvis_brace_FE(Tr_int_sagit,3), 10); 
+% quiver3(ISA_r_wrt_pelvis_brace_LB(Tr_int_front,1), ISA_r_wrt_pelvis_brace_LB(Tr_int_front,2), ISA_r_wrt_pelvis_brace_LB(Tr_int_front,3),...
+%                 omega_r_wrt_pelvis_brace_LB(Tr_int_front,1), omega_r_wrt_pelvis_brace_LB(Tr_int_front,2), omega_r_wrt_pelvis_brace_LB(Tr_int_front,3), 10); 
+% quiver3(ISA_r_wrt_pelvis_brace_AR(Tr_int_trans,1), ISA_r_wrt_pelvis_brace_AR(Tr_int_trans,2), ISA_r_wrt_pelvis_brace_AR(Tr_int_trans,3),...
+%                 omega_r_wrt_pelvis_brace_AR(Tr_int_trans,1), omega_r_wrt_pelvis_brace_AR(Tr_int_trans,2), omega_r_wrt_pelvis_brace_AR(Tr_int_trans,3), 10); 
 
 axis equal;
     

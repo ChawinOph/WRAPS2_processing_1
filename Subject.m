@@ -1575,27 +1575,27 @@ classdef Subject < handle
             omega_r_wrt_pelvis_brace = this.sbj_WRAPS2(trial_no).relISA.omega_r_wrt_pelvis_brace;
             
             % scatter plot of centroid
-            scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
-            scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
+%             scatter3(centroid_thor(:,1), centroid_thor(:,2), centroid_thor(:,3));  hold on;
+%             scatter3(centroid_pelv(:,1), centroid_pelv(:,2), centroid_pelv(:,3));
             
             % absolute ISA of thorax brace
             Tt = T_indcs_thor(1:round(length(T_indcs_thor)/n_down_sample_ratio):end);
             quiver3(ISA_thor(Tt,1), ISA_thor(Tt,2), ISA_thor(Tt,3), ...
                 omega_thor(Tt,1), omega_thor(Tt,2), omega_thor(Tt,3), 10);
-            quiver3(centroid_thor(Tt,1), centroid_thor(Tt,2), centroid_thor(Tt,3), v_g_thor(Tt,1), v_g_thor(Tt,2), v_g_thor(Tt,3), 10);
+%             quiver3(centroid_thor(Tt,1), centroid_thor(Tt,2), centroid_thor(Tt,3), v_g_thor(Tt,1), v_g_thor(Tt,2), v_g_thor(Tt,3), 10);
             
             % absolute ISA of pelvis brace
             Tp = T_indcs_pelv(1:round(length(T_indcs_pelv)/n_down_sample_ratio):end);
             quiver3(ISA_pelv(Tp,1), ISA_pelv(Tp,2), ISA_pelv(Tp,3),...
                 omega_pelv(Tp,1), omega_pelv(Tp,2), omega_pelv(Tp,3), 10);
-            quiver3(centroid_pelv(Tp,1), centroid_pelv(Tp,2), centroid_pelv(Tp,3),v_g_pelv(Tp,1), v_g_pelv(Tp,2), v_g_pelv(Tp,3), 10);
+%             quiver3(centroid_pelv(Tp,1), centroid_pelv(Tp,2), centroid_pelv(Tp,3),v_g_pelv(Tp,1), v_g_pelv(Tp,2), v_g_pelv(Tp,3), 10);
             
             % absolute relative ISA of
-            scatter3(pos_m_psis(:,1), pos_m_psis(:,2), pos_m_psis(:,3));
+%             scatter3(pos_m_psis(:,1), pos_m_psis(:,2), pos_m_psis(:,3));
             Tr = T_indcs_r(1:round(length(T_indcs_r)/n_down_sample_ratio):end);
             quiver3(ISA_r(Tr,1), ISA_r(Tr,2), ISA_r(Tr,3),...
                 omega_r(Tr,1), omega_r(Tr,2), omega_r(Tr,3), 10);
-            quiver3(pos_m_psis(Tr,1), pos_m_psis(Tr,2), pos_m_psis(Tr,3), v_m_psis_r(Tr,1), v_m_psis_r(Tr,2), v_m_psis_r(Tr,3), 10);
+%             quiver3(pos_m_psis(Tr,1), pos_m_psis(Tr,2), pos_m_psis(Tr,3), v_m_psis_r(Tr,1), v_m_psis_r(Tr,2), v_m_psis_r(Tr,3), 10);
             axis equal;
             
             % plot the ISA and omega wrt to the pelvis frame

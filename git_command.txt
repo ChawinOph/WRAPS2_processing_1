@@ -6,7 +6,7 @@ cd Z:\Project - Wheelchair Brace\Data\WRAPS2_data_collection_1
 % add files to directory
 git add Subject.m
 git add WRAPS2_Vicon_Process.m
-git add AnthroModel.m
+git add AnthroModel.mgir 
 git add marker_cluster_pos.mat
 git add BodySegment.m
 git add sbj_measurement_table.mat
